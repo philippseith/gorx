@@ -13,7 +13,7 @@ type of[T any] struct {
 func (of *of[T]) Subscribe(o Observer[T]) Subscription {
 	for _, item := range of.items {
 		o.Next(item)
-		o.Complete()
 	}
+	o.Complete()
 	return &subscription{u: func() {}}
 }
