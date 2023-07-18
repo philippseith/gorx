@@ -1,4 +1,4 @@
-module rxgo
+module gorx
 
 go 1.20
 
