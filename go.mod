@@ -1,4 +1,4 @@
-module gorx
+module github.com/philippseith/gorx
 
 go 1.20
 
