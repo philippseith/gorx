@@ -3,8 +3,8 @@ package rx
 func t() {
 	var s Subscribable[int]
 
-	Pipe(
-		Pipe(s,
+	Map(
+		Map(s,
 			func(value int) string {
 				return ""
 			}),

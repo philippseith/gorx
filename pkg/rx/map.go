@@ -6,21 +6,21 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func Pipe[T any, U any](source Subscribable[T], next func(value T) U) Subscribable[U] {
-	p := &pipe[T, U]{
+func Map[T any, U any](source Subscribable[T], next func(value T) U) Subscribable[U] {
+	p := &mapSubscribable[T, U]{
 		n: next,
 	}
 	source.Subscribe(p)
 	return p
 }
 
-type pipe[T any, U any] struct {
+type mapSubscribable[T any, U any] struct {
 	obs   []Observer[U]
 	mxObs sync.RWMutex
 	n     func(value T) U
 }
 
-func (p *pipe[T, U]) Subscribe(o Observer[U]) Subscription {
+func (p *mapSubscribable[T, U]) Subscribe(o Observer[U]) Subscription {
 	p.obs = append(p.obs, o)
 	return &subscription{func() {
 		p.mxObs.Lock()
@@ -31,7 +31,7 @@ func (p *pipe[T, U]) Subscribe(o Observer[U]) Subscription {
 	}}
 }
 
-func (p *pipe[T, U]) Next(t T) {
+func (p *mapSubscribable[T, U]) Next(t T) {
 	u := p.n(t)
 	p.mxObs.RLock()
 	defer p.mxObs.RUnlock()
@@ -41,7 +41,7 @@ func (p *pipe[T, U]) Next(t T) {
 	}
 }
 
-func (p *pipe[T, U]) Error(err error) {
+func (p *mapSubscribable[T, U]) Error(err error) {
 	p.mxObs.RLock()
 	defer p.mxObs.RUnlock()
 
@@ -50,7 +50,7 @@ func (p *pipe[T, U]) Error(err error) {
 	}
 }
 
-func (p *pipe[T, U]) Complete() {
+func (p *mapSubscribable[T, U]) Complete() {
 	p.mxObs.RLock()
 	defer p.mxObs.RUnlock()
 
