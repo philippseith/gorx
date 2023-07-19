@@ -7,7 +7,7 @@ type Subscribable[T any] interface {
 }
 
 func FromChan[T any](ctx context.Context, ch <-chan T) Subscribable[T] {
-	p := &pipe[T, T]{
+	p := &mapSubscribable[T, T]{
 		n: func(t T) T {
 			return t
 		},
