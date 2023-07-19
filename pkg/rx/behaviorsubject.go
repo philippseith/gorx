@@ -2,6 +2,8 @@ package rx
 
 import "sync"
 
+// BehaviorSubject is a variant of Subject that requires an initial value and
+// emits its current value whenever it is subscribed to.
 type BehaviorSubject[T any] struct {
 	Subject[T]
 	value T
