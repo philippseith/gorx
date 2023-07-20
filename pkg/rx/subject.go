@@ -2,31 +2,43 @@ package rx
 
 import (
 	"sync"
-
-	"golang.org/x/exp/slices"
 )
 
-type Subject[T any] struct {
-	observers []Observer[T]
+type Subject[T any] interface {
+	Subscribable[T]
+	Observer[T]
+}
+
+func NewSubject[T any]() Subject[T] {
+	return &subject[T]{
+		observers: map[int]Observer[T]{},
+	}
+}
+
+type subject[T any] struct {
+	observers map[int]Observer[T]
+	nextId    int
 	mx        sync.RWMutex
 }
 
-func (s *Subject[T]) Subscribe(o Observer[T]) Subscription {
+func (s *subject[T]) Subscribe(o Observer[T]) Subscription {
 	s.mx.Lock()
 	defer s.mx.Unlock()
 
-	s.observers = append(s.observers, o)
+	id := s.nextId
+	s.nextId++
+
+	s.observers[id] = o
+
 	return &subscription{u: func() {
 		s.mx.Lock()
 		defer s.mx.Unlock()
 
-		if idx := slices.Index(s.observers, o); idx != -1 {
-			s.observers = append(s.observers[:idx], s.observers[idx+1:]...)
-		}
+		delete(s.observers, id)
 	}}
 }
 
-func (s *Subject[T]) Next(value T) {
+func (s *subject[T]) Next(value T) {
 	s.mx.RLock()
 	defer s.mx.RUnlock()
 
@@ -35,7 +47,7 @@ func (s *Subject[T]) Next(value T) {
 	}
 }
 
-func (s *Subject[T]) Error(err error) {
+func (s *subject[T]) Error(err error) {
 	s.mx.RLock()
 	defer s.mx.RUnlock()
 
@@ -44,7 +56,7 @@ func (s *Subject[T]) Error(err error) {
 	}
 }
 
-func (s *Subject[T]) Complete() {
+func (s *subject[T]) Complete() {
 	s.mx.RLock()
 	defer s.mx.RUnlock()
 

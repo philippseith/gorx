@@ -11,7 +11,9 @@ type BehaviorSubject[T any] struct {
 }
 
 func NewBehaviorSubject[T any](value T) *BehaviorSubject[T] {
-	return &BehaviorSubject[T]{value: value}
+	return &BehaviorSubject[T]{
+		Subject: NewSubject[T](),
+		value:   value}
 }
 
 func (bs *BehaviorSubject[T]) Value() T {

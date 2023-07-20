@@ -7,27 +7,23 @@ type Subscribable[T any] interface {
 }
 
 func FromChan[T any](ctx context.Context, ch <-chan T) Subscribable[T] {
-	p := &mapSubscribable[T, T]{
-		n: func(t T) T {
-			return t
-		},
-	}
+	s := NewSubject[T]()
 	go func() {
 		for {
 			select {
 			case t, ok := <-ch:
 				if !ok {
-					p.Complete()
+					s.Complete()
 					return
 				}
-				p.Next(t)
+				s.Next(t)
 			case <-ctx.Done():
-				p.Complete()
+				s.Complete()
 				return
 			}
 		}
 	}()
-	return p
+	return s
 }
 
 func ToChan[T any](s Subscribable[T]) (<-chan Item[T], Subscription) {

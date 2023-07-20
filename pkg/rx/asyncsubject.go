@@ -11,7 +11,7 @@ type AsyncSubject[T any] struct {
 }
 
 func NewAsyncSubject[T any]() *AsyncSubject[T] {
-	return &AsyncSubject[T]{}
+	return &AsyncSubject[T]{Subject: NewSubject[T]()}
 }
 
 func (as *AsyncSubject[T]) Next(value T) {
