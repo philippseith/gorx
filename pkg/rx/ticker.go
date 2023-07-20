@@ -13,7 +13,10 @@ type Ticker interface {
 }
 
 func NewTicker(due, interval time.Duration) Ticker {
-	t := &ticker{interval: interval}
+	t := &ticker{
+		Subject:  NewSubject[time.Time](),
+		interval: interval,
+	}
 	go func() {
 		<-time.After(due)
 
