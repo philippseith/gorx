@@ -1,17 +1,18 @@
 package rx_test
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/philippseith/gorx/pkg/rx"
 )
 
-func TestOf(t *testing.T) {
+func TestJust(t *testing.T) {
 	expected := []int{1, 2, 3}
-	o := rx.Of(expected...)
+	f := rx.From(expected...)
 	var actual []int
-	o.Subscribe(rx.NewObserver[int](func(i int) {
+	f.Subscribe(rx.NewObserver[int](func(i int) {
 		actual = append(actual, i)
 	}, nil, nil))
 

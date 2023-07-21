@@ -10,18 +10,11 @@ type Subject[T any] interface {
 }
 
 func NewSubject[T any]() Subject[T] {
-	s := &subject[T]{}
-
-	s.mx.Lock()
-	defer s.mx.Unlock()
-
-	s.observers = map[int]Observer[T]{}
-	return s
+	return &subject[T]{}
 }
 
 type subject[T any] struct {
-	observers map[int]Observer[T]
-	nextId    int
+	observers []Observer[T]
 	mx        sync.RWMutex
 }
 
@@ -29,16 +22,18 @@ func (s *subject[T]) Subscribe(o Observer[T]) Subscription {
 	s.mx.Lock()
 	defer s.mx.Unlock()
 
-	id := s.nextId
-	s.nextId++
-
-	s.observers[id] = o
+	s.observers = append(s.observers, o)
 
 	return &subscription{u: func() {
 		s.mx.Lock()
 		defer s.mx.Unlock()
 
-		delete(s.observers, id)
+		for i, v := range s.observers {
+			if o == v {
+				s.observers = append(s.observers[:i], s.observers[i+1:]...)
+				return
+			}
+		}
 	}}
 }
 
