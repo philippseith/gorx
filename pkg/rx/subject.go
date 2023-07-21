@@ -10,9 +10,13 @@ type Subject[T any] interface {
 }
 
 func NewSubject[T any]() Subject[T] {
-	return &subject[T]{
-		observers: map[int]Observer[T]{},
-	}
+	s := &subject[T]{}
+
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
+	s.observers = map[int]Observer[T]{}
+	return s
 }
 
 type subject[T any] struct {
