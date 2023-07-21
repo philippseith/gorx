@@ -1,17 +1,17 @@
 package rx
 
-func Map[T any, U any](s Subscribable[T], mapper func(T) U) Subscribable[U] {
+func Map[T any, U any](o Observable[T], mapper func(T) U) Observable[U] {
 	su := NewSubject[U]()
-	s.Subscribe(NewObserver[T](func(value T) {
+	o.Subscribe(NewObserver[T](func(value T) {
 		su.Next(mapper(value))
 	}, su.Error, su.Complete))
 	return su
 }
 
-func Reduce[T any, U any](s Subscribable[T], acc func(U, T) U, seed U) Subscribable[U] {
+func Reduce[T any, U any](o Observable[T], acc func(U, T) U, seed U) Observable[U] {
 	result := []U{seed}
 	su := NewSubject[U]()
-	s.Subscribe(NewObserver[T](func(value T) {
+	o.Subscribe(NewObserver[T](func(value T) {
 		result[0] = acc(result[0], value)
 	}, su.Error, func() {
 		su.Next(result[0])
@@ -20,10 +20,10 @@ func Reduce[T any, U any](s Subscribable[T], acc func(U, T) U, seed U) Subscriba
 	return su
 }
 
-func Scan[T any, U any](s Subscribable[T], acc func(U, T) U, seed U) Subscribable[U] {
+func Scan[T any, U any](o Observable[T], acc func(U, T) U, seed U) Observable[U] {
 	result := []U{seed}
 	su := NewSubject[U]()
-	s.Subscribe(NewObserver[T](func(value T) {
+	o.Subscribe(NewObserver[T](func(value T) {
 		result[0] = acc(result[0], value)
 		su.Next(result[0])
 	}, su.Error, su.Complete))

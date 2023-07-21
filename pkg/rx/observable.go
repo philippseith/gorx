@@ -2,11 +2,11 @@ package rx
 
 import "context"
 
-type Subscribable[T any] interface {
+type Observable[T any] interface {
 	Subscribe(o Observer[T]) Subscription
 }
 
-func FromChan[T any](ctx context.Context, ch <-chan T) Subscribable[T] {
+func FromChan[T any](ctx context.Context, ch <-chan T) Observable[T] {
 	s := NewSubject[T]()
 	go func() {
 		for {
@@ -26,11 +26,11 @@ func FromChan[T any](ctx context.Context, ch <-chan T) Subscribable[T] {
 	return s
 }
 
-func ToChan[T any](s Subscribable[T]) (<-chan Item[T], Subscription) {
+func ToChan[T any](o Observable[T]) (<-chan Item[T], Subscription) {
 	tc := &toChan[T]{
 		ch: make(chan Item[T], 1),
 	}
-	return tc.ch, s.Subscribe(tc)
+	return tc.ch, o.Subscribe(tc)
 }
 
 type Item[T any] struct {

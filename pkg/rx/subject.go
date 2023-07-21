@@ -5,7 +5,7 @@ import (
 )
 
 type Subject[T any] interface {
-	Subscribable[T]
+	Observable[T]
 	Observer[T]
 }
 

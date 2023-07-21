@@ -1,6 +1,6 @@
 package rx
 
-func Of[T any](items ...T) Subscribable[T] {
+func Of[T any](items ...T) Observable[T] {
 	return &of[T]{
 		items: items,
 	}

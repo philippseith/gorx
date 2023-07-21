@@ -6,7 +6,7 @@ import (
 )
 
 type Ticker interface {
-	Subscribable[time.Time]
+	Observable[time.Time]
 
 	Reset(interval time.Duration)
 	Stop()
@@ -18,7 +18,7 @@ func NewTicker(due, interval time.Duration) Ticker {
 		interval: interval,
 	}
 	go func() {
-		<-time.After(due)
+		t.Next(<-time.After(due))
 
 		t.mx.Lock()
 		defer t.mx.Unlock()
