@@ -28,3 +28,24 @@ func TestCreate(t *testing.T) {
 	c.Subscribe(p)
 	assert.Equal(t, []int{1, 2}, pv)
 }
+
+func TestDefer(t *testing.T) {
+	expected := []int{1, 2, 3}
+	d := rx.Defer(func() rx.Observable[int] {
+		return rx.From(expected...)
+	})
+
+	var ov []int
+	o := rx.NewObserver[int](func(v int) {
+		ov = append(ov, v)
+	}, nil, nil)
+	var pv []int
+	p := rx.NewObserver[int](func(v int) {
+		pv = append(pv, v)
+	}, nil, nil)
+
+	d.Subscribe(o)
+	assert.Equal(t, expected, ov)
+	d.Subscribe(p)
+	assert.Equal(t, expected, pv)
+}
