@@ -7,14 +7,11 @@ type Connectable[T any] interface {
 }
 
 func ToConnectable[T any](o Observable[T]) Connectable[T] {
-	return &connectable[T]{
-		Subject: NewSubject[T](),
-		o:       o,
-	}
+	return &connectable[T]{o: o}
 }
 
 type connectable[T any] struct {
-	Subject[T]
+	observableObserver[T]
 	o Observable[T]
 }
 

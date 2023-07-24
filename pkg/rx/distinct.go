@@ -4,27 +4,27 @@ import "reflect"
 
 func Distinct[T comparable](o Observable[T]) Observable[T] {
 	values := map[T]struct{}{}
-	s := NewSubject[T]()
+	oo := &observableObserver[T]{}
 	o.Subscribe(NewObserver[T](func(value T) {
 		if _, in := values[value]; !in {
-			s.Next(value)
+			oo.Next(value)
 		}
 		values[value] = struct{}{}
-	}, s.Error, s.Complete))
-	return s
+	}, oo.Error, oo.Complete))
+	return oo
 }
 
 func DistinctUntilChanged[T any](o Observable[T], equal func(T, T) bool) Observable[T] {
 	var last *T
-	s := NewSubject[T]()
+	oo := &observableObserver[T]{}
 	if equal == nil {
 		equal = func(a, b T) bool { return reflect.DeepEqual(a, b) }
 	}
 	o.Subscribe(NewObserver[T](func(value T) {
 		if last == nil || !equal(*last, value) {
-			s.Next(value)
+			oo.Next(value)
 		}
 		last = &value
-	}, s.Error, s.Complete))
-	return s
+	}, oo.Error, oo.Complete))
+	return oo
 }
