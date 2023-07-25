@@ -22,6 +22,12 @@ func FromChan[T any](ctx context.Context, ch <-chan T) Observable[T] {
 	return oo
 }
 
+// ToChan pushes the values from an Observable into a channel. It returns a
+// channel and the Subscription to the Observable. the channel type Item[T]
+// contains values and a possible error. Note that ToChan will block immediately
+// with cold observables. You need to wrap the cold observable with
+// ToConnectable and set up a receiving goroutine for the channel before you
+// call Connectable.Connect
 func ToChan[T any](o Observable[T]) (<-chan Item[T], Subscription) {
 	tc := &toChan[T]{
 		ch: make(chan Item[T], 1),
