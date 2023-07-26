@@ -33,17 +33,19 @@ func Reduce[T any, U any](o Observable[T], acc func(U, T) U, seed U) Observable[
 }
 
 func Scan[T any, U any](o Observable[T], acc func(U, T) U, seed U) Observable[U] {
-	result := []U{seed}
-	oou := &observableObserver[U, U]{
-		t2u: func(t U) U {
-			return t
-		},
+	s := &struct {
+		observableObserver[T, U]
+		acc U
+	}{
+		observableObserver: observableObserver[T, U]{},
+		acc:                seed,
 	}
-	oou.sourceSub = func() {
-		o.Subscribe(NewObserver[T](func(value T) {
-			result[0] = acc(result[0], value)
-			oou.Next(result[0])
-		}, oou.Error, oou.Complete))
+	s.t2u = func(t T) U {
+		s.acc = acc(s.acc, t)
+		return s.acc
 	}
-	return oou
+	s.sourceSub = func() {
+		o.Subscribe(s)
+	}
+	return s
 }
