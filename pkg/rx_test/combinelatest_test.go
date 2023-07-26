@@ -17,9 +17,7 @@ func TestCombineLatest(t *testing.T) {
 
 	rx.CombineLatest[[]any](func(n ...any) []any {
 		var nn []any
-		for _, ni := range n {
-			nn = append(nn, ni)
-		}
+		nn = append(nn, n...)
 		return nn
 	}, ab, oneTwoThree).Subscribe(rx.NewObserver[[]any](func(next []any) {
 		actual = next
