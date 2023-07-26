@@ -21,12 +21,16 @@ type Observable[T any] interface {
 	ToSlice(ctx context.Context) []T
 }
 
+func ToObservable[T any](s Subscribable[T]) Observable[T] {
+	return &observable[T]{Subscribable: s}
+}
+
 type observable[T any] struct {
-	s Subscribable[T]
+	Subscribable[T]
 }
 
 func (o *observable[T]) Subscribe(or Observer[T]) Subscription {
-	return o.s.Subscribe(or)
+	return o.Subscribable.Subscribe(or)
 }
 
 func (o *observable[T]) Debounce(duration time.Duration) Observable[T] {
