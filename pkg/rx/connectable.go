@@ -7,11 +7,17 @@ type Connectable[T any] interface {
 }
 
 func ToConnectable[T any](o Observable[T]) Connectable[T] {
-	return &connectable[T]{o: o}
+	return &connectable[T]{
+		observableObserver: observableObserver[T, T]{
+			t2u: func(t T) T {
+				return t
+			},
+		},
+		o: o}
 }
 
 type connectable[T any] struct {
-	observableObserver[T]
+	observableObserver[T, T]
 	o Observable[T]
 }
 

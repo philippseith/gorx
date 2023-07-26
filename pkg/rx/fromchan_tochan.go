@@ -2,8 +2,14 @@ package rx
 
 import "context"
 
+// FromChan creates an Observable[T] from a chan T. The channel will be read at
+// once. All values sent before the Observable is subscribed to, will be ignored.
 func FromChan[T any](ctx context.Context, ch <-chan T) Observable[T] {
-	oo := &observableObserver[T]{}
+	oo := &observableObserver[T, T]{
+		t2u: func(t T) T {
+			return t
+		},
+	}
 	go func() {
 		for {
 			select {

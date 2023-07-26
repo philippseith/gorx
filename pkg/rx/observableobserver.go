@@ -1,49 +1,66 @@
 package rx
 
-import "sync"
+import (
+	"sync"
+)
 
-type observableObserver[T any] struct {
-	o  Observer[T]
-	mx sync.RWMutex
+type observableObserver[T any, U any] struct {
+	o         Observer[U]
+	sourceSub func()
+	mx        sync.RWMutex
+
+	t2u func(T) U
 }
 
-func (oo *observableObserver[T]) Next(value T) {
+func (oo *observableObserver[T, U]) Next(value T) {
 	oo.mx.RLock()
 	defer oo.mx.RUnlock()
 
 	if oo.o != nil {
-		oo.o.Next(value)
+		oo.o.Next(oo.t2u(value))
 	}
 }
 
-func (oo *observableObserver[T]) Error(err error) {
-	oo.mx.RLock()
-	defer oo.mx.RUnlock()
+func (oo *observableObserver[T, U]) Error(err error) {
+	func() {
+		oo.mx.RLock()
+		defer oo.mx.RUnlock()
 
-	if oo.o != nil {
-		oo.o.Error(err)
-	}
+		if oo.o != nil {
+			oo.o.Error(err)
+		}
+	}()
+	oo.unsubscribe()
 }
 
-func (oo *observableObserver[T]) Complete() {
-	oo.mx.RLock()
-	defer oo.mx.RUnlock()
+func (oo *observableObserver[T, U]) Complete() {
+	func() {
+		oo.mx.RLock()
+		defer oo.mx.RUnlock()
 
-	if oo.o != nil {
-		oo.o.Complete()
-	}
+		if oo.o != nil {
+			oo.o.Complete()
+		}
+	}()
+	oo.unsubscribe()
 }
 
-func (oo *observableObserver[T]) Subscribe(o Observer[T]) Subscription {
-	oo.mx.Lock()
-	defer oo.mx.Unlock()
-
-	oo.o = o
-
-	return NewSubscription(func() {
+func (oo *observableObserver[T, U]) Subscribe(o Observer[U]) Subscription {
+	if ss := func() func() {
 		oo.mx.Lock()
 		defer oo.mx.Unlock()
 
-		oo.o = nil
-	})
+		oo.o = o
+		return oo.sourceSub
+	}(); ss != nil {
+		ss()
+	}
+	return NewSubscription(oo.unsubscribe)
+}
+
+func (oo *observableObserver[T, U]) unsubscribe() {
+	oo.mx.Lock()
+	defer oo.mx.Unlock()
+
+	oo.o = nil
 }

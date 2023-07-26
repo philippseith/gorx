@@ -4,15 +4,20 @@ import "time"
 
 func Debounce[T any](o Observable[T], duration time.Duration) Observable[T] {
 	d := &debounce[T]{
+		observableObserver: observableObserver[T, T]{
+			t2u: func(t T) T {
+				return t
+			},
+		},
 		duration: duration,
 		last:     time.Unix(0, 0),
 	}
-	o.Subscribe(d)
+	d.sourceSub = func() { o.Subscribe(d) }
 	return d
 }
 
 type debounce[T any] struct {
-	observableObserver[T]
+	observableObserver[T, T]
 	duration time.Duration
 	last     time.Time
 }
