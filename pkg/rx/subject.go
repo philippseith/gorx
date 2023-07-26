@@ -14,6 +14,7 @@ func NewSubject[T any]() Subject[T] {
 }
 
 type subject[T any] struct {
+	observable[T]
 	observers []Observer[T]
 	mx        sync.RWMutex
 }

@@ -5,6 +5,7 @@ func Create[T any](subscribe func(o Observer[T])) Observable[T] {
 }
 
 type create[T any] struct {
+	observable[T]
 	s func(Observer[T])
 }
 
@@ -18,6 +19,7 @@ func Defer[T any](factory func() Observable[T]) Observable[T] {
 }
 
 type deferImp[T any] struct {
+	observable[T]
 	f func() Observable[T]
 }
 

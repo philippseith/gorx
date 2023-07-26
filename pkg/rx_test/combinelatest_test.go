@@ -2,9 +2,10 @@ package rx_test
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/philippseith/gorx/pkg/rx"
 )
@@ -31,11 +32,17 @@ func TestCombineLatest(t *testing.T) {
 }
 
 func TestCombineLatestTicker(t *testing.T) {
-	t1 := rx.NewTicker(0, 1*time.Millisecond)
-	t2 := rx.NewTicker(0, 2*time.Millisecond)
-	tt1 := rx.Scan[time.Time, int](rx.Take[time.Time](t1, 3), func(i int, t time.Time) int { return i + 1 }, 0)
-	tt2 := rx.Scan[time.Time, int](rx.Take[time.Time](t2, 3), func(i int, t time.Time) int { return i + 1 }, 0)
+	for i := 0; i < 10; i++ {
+		// 1499 and 1999 are prime
+		t1 := rx.NewTicker(0, 1499*time.Microsecond)
+		t2 := rx.NewTicker(0, 1999*time.Microsecond)
+		tt1 := rx.Scan[time.Time, int](rx.Take[time.Time](t1, 3), func(i int, t time.Time) int { return i + 1 }, 0)
+		tt2 := rx.Scan[time.Time, int](rx.Take[time.Time](t2, 3), func(i int, t time.Time) int { return i + 1 }, 0)
 
-	sl := rx.ToSlice(context.Background(), rx.CombineLatest[[]any](func(ts ...any) []any { return ts }, rx.ToAny(tt1), rx.ToAny(tt2)))
-	assert.Equal(t, [][]any{{1, 1}, {2, 1}, {2, 2}, {3, 2}, {3, 3}}, sl)
+		sl := rx.ToSlice(context.Background(), rx.CombineLatest[[]any](func(ts ...any) []any { return ts }, rx.ToAny(tt1), rx.ToAny(tt2)))
+		// the second and forth combination are not stable
+		assert.Equal(t, []any{1, 1}, sl[0])
+		assert.Equal(t, []any{2, 2}, sl[2])
+		assert.Equal(t, []any{3, 3}, sl[4])
+	}
 }

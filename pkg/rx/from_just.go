@@ -7,6 +7,7 @@ func From[T any](items ...T) Observable[T] {
 }
 
 type from[T any] struct {
+	observable[T]
 	items []T
 }
 
@@ -23,6 +24,7 @@ func Just[T any](value T) Observable[T] {
 }
 
 type just[T any] struct {
+	observable[T]
 	value T
 }
 

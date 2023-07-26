@@ -5,6 +5,7 @@ import (
 )
 
 type observableObserver[T any, U any] struct {
+	observable[U]
 	o         Observer[U]
 	sourceSub func()
 	mx        sync.RWMutex
