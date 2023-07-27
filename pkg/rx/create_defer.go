@@ -12,7 +12,7 @@ type create[T any] struct {
 
 func (c *create[T]) Subscribe(o Observer[T]) Subscription {
 	c.s(o)
-	return &subscription{u: func() {}}
+	return &subscription{}
 }
 
 // Defer creates an Observable for each subscription with the help of s factory function

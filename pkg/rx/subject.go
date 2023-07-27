@@ -25,7 +25,7 @@ func (s *subject[T]) Subscribe(o Observer[T]) Subscription {
 
 	s.observers = append(s.observers, o)
 
-	return &subscription{u: func() {
+	return NewSubscription(func() {
 		s.mx.Lock()
 		defer s.mx.Unlock()
 
@@ -35,7 +35,7 @@ func (s *subject[T]) Subscribe(o Observer[T]) Subscription {
 				return
 			}
 		}
-	}}
+	})
 }
 
 func (s *subject[T]) Next(value T) {

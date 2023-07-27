@@ -17,7 +17,7 @@ func (f *from[T]) Subscribe(o Observer[T]) Subscription {
 		o.Next(item)
 	}
 	o.Complete()
-	return &subscription{u: func() {}}
+	return &subscription{}
 }
 
 // Just creates an Observable that emits only the value and then completes
@@ -33,5 +33,5 @@ type just[T any] struct {
 func (j *just[T]) Subscribe(o Observer[T]) Subscription {
 	o.Next(j.value)
 	o.Complete()
-	return &subscription{u: func() {}}
+	return &subscription{}
 }
