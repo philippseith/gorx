@@ -1,27 +1,27 @@
 package rx
 
-func Share[T any](o Observable[T]) Observable[T] {
+func Share[T any](s Subscribable[T]) Observable[T] {
 	return &share[T]{
 		subject: subject[T]{},
-		o:       o,
+		s:       s,
 	}
 }
 
 type share[T any] struct {
 	subject[T]
-	o Observable[T]
-	s Subscription
+	s  Subscribable[T]
+	sn Subscription
 }
 
-func (s *share[T]) Subscribe(o Observer[T]) Subscription {
-	su := s.subject.Subscribe(o)
-	if len(s.subject.observers) == 1 {
-		s.s = s.o.Subscribe(s)
+func (sh *share[T]) Subscribe(o Observer[T]) Subscription {
+	su := sh.subject.Subscribe(o)
+	if len(sh.subject.observers) == 1 {
+		sh.sn = sh.s.Subscribe(sh)
 	}
 	return NewSubscription(func() {
 		su.Unsubscribe()
-		if len(s.subject.observers) == 0 {
-			s.s.Unsubscribe()
+		if len(sh.subject.observers) == 0 {
+			sh.sn.Unsubscribe()
 		}
 	})
 }

@@ -1,6 +1,6 @@
 package rx
 
-func Take[T any](o Observable[T], count int) Observable[T] {
+func Take[T any](s Subscribable[T], count int) Observable[T] {
 	t := &take[T]{
 		observableObserver: observableObserver[T, T]{
 			t2u: func(t T) T { return t },
@@ -8,7 +8,7 @@ func Take[T any](o Observable[T], count int) Observable[T] {
 		count: count,
 	}
 	t.sourceSub = func() {
-		o.Subscribe(t)
+		s.Subscribe(t)
 	}
 	return t
 }

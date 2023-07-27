@@ -10,8 +10,8 @@ import (
 
 func TestCombineLatest(t *testing.T) {
 	var actual []any
-	ab := rx.ToConnectable(rx.From[any]('A', 'B'))
-	oneTwoThree := rx.ToConnectable(rx.From[any](1, 2, 3))
+	ab := rx.ToConnectable[any](rx.From[any]('A', 'B'))
+	oneTwoThree := rx.ToConnectable[any](rx.From[any](1, 2, 3))
 
 	rx.CombineLatest[[]any](func(n ...any) []any {
 		var nn []any

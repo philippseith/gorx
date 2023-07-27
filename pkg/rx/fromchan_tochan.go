@@ -34,11 +34,11 @@ func FromChan[T any](ctx context.Context, ch <-chan T) Observable[T] {
 // with cold observables. You need to wrap the cold observable with
 // ToConnectable and set up a receiving goroutine for the channel before you
 // call Connectable.Connect
-func ToChan[T any](o Observable[T]) (<-chan Item[T], Subscription) {
+func ToChan[T any](s Subscribable[T]) (<-chan Item[T], Subscription) {
 	tc := &toChan[T]{
 		ch: make(chan Item[T], 1),
 	}
-	return tc.ch, o.Subscribe(tc)
+	return tc.ch, s.Subscribe(tc)
 }
 
 type Item[T any] struct {

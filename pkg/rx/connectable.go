@@ -6,21 +6,21 @@ type Connectable[T any] interface {
 	Connect()
 }
 
-func ToConnectable[T any](o Observable[T]) Connectable[T] {
+func ToConnectable[T any](s Subscribable[T]) Connectable[T] {
 	return &connectable[T]{
 		observableObserver: observableObserver[T, T]{
 			t2u: func(t T) T {
 				return t
 			},
 		},
-		o: o}
+		s: s}
 }
 
 type connectable[T any] struct {
 	observableObserver[T, T]
-	o Observable[T]
+	s Subscribable[T]
 }
 
 func (c *connectable[T]) Connect() {
-	c.o.Subscribe(c)
+	c.s.Subscribe(c)
 }

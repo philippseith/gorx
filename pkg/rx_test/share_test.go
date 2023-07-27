@@ -39,7 +39,7 @@ func TestShare(t *testing.T) {
 }
 
 func TestShareResetOnNewSubscriber0(t *testing.T) {
-	sh := rx.Share(rx.From(1, 2, 3))
+	sh := rx.Share[int](rx.From(1, 2, 3))
 	expected := []int{1, 2, 3}
 	var sl1 []int
 	sh.Subscribe(rx.NewObserver(func(value int) {

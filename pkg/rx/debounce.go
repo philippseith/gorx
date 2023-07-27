@@ -2,7 +2,7 @@ package rx
 
 import "time"
 
-func Debounce[T any](o Observable[T], duration time.Duration) Observable[T] {
+func Debounce[T any](s Subscribable[T], duration time.Duration) Observable[T] {
 	d := &debounce[T]{
 		observableObserver: observableObserver[T, T]{
 			t2u: func(t T) T {
@@ -12,7 +12,7 @@ func Debounce[T any](o Observable[T], duration time.Duration) Observable[T] {
 		duration: duration,
 		last:     time.Unix(0, 0),
 	}
-	d.sourceSub = func() { o.Subscribe(d) }
+	d.sourceSub = func() { s.Subscribe(d) }
 	return d
 }
 

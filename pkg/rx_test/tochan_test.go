@@ -9,7 +9,7 @@ import (
 )
 
 func TestToChan(t *testing.T) {
-	cn := rx.ToConnectable(rx.From(1, 2, 3))
+	cn := rx.ToConnectable[int](rx.From(1, 2, 3))
 	ch, _ := rx.ToChan[int](cn)
 	var sl []int
 	done := make(chan struct{})

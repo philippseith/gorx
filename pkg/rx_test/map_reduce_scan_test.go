@@ -27,7 +27,7 @@ func TestMap(t *testing.T) {
 
 func TestReduce(t *testing.T) {
 	result := []int{0}
-	fc := rx.ToConnectable(rx.From[int](1, 2, 3))
+	fc := rx.ToConnectable[int](rx.From[int](1, 2, 3))
 
 	rx.Reduce[int, int](fc, func(u, t int) int {
 		return u + t

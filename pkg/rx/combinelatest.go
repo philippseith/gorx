@@ -2,7 +2,7 @@ package rx
 
 import "golang.org/x/exp/slices"
 
-func CombineLatest[T any](combine func(next ...any) T, sources ...Observable[any]) Observable[T] {
+func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[any]) Observable[T] {
 	c := &combineLatest[T]{
 		observableObserver: observableObserver[any, T]{
 			t2u: func(a any) T { return a.(T) },
