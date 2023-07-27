@@ -1,5 +1,6 @@
 package rx
 
+// From creates an Observable that emits all items and then completes
 func From[T any](items ...T) Observable[T] {
 	return &from[T]{
 		items: items,
@@ -19,6 +20,7 @@ func (f *from[T]) Subscribe(o Observer[T]) Subscription {
 	return &subscription{u: func() {}}
 }
 
+// Just creates an Observable that emits only the value and then completes
 func Just[T any](value T) Observable[T] {
 	return &just[T]{value: value}
 }

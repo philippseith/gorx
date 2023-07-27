@@ -2,6 +2,9 @@ package rx
 
 import "time"
 
+// Debounce returns an Observable that delays the emissions of the source
+// Subscribable by the specified duration and may drop some values if they occur
+// too frequently.
 func Debounce[T any](s Subscribable[T], duration time.Duration) Observable[T] {
 	d := &debounce[T]{
 		observableObserver: observableObserver[T, T]{

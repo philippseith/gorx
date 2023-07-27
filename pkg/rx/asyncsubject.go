@@ -10,6 +10,7 @@ type AsyncSubject[T any] struct {
 	mx    sync.RWMutex
 }
 
+// NewAsyncSubject creates a new AsyncSubject
 func NewAsyncSubject[T any]() *AsyncSubject[T] {
 	return &AsyncSubject[T]{Subject: NewSubject[T]()}
 }

@@ -6,6 +6,7 @@ type Connectable[T any] interface {
 	Connect()
 }
 
+// ToConnectable creates an observable that multicasts once connect() is called on it.
 func ToConnectable[T any](s Subscribable[T]) Connectable[T] {
 	return &connectable[T]{
 		observableObserver: observableObserver[T, T]{

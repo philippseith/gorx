@@ -2,6 +2,8 @@ package rx
 
 import "golang.org/x/exp/slices"
 
+// CombineLatest combines multiple Subscribables to create an Observable whose
+// values are calculated from the latest values of each of its input Observables.
 func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[any]) Observable[T] {
 	c := &combineLatest[T]{
 		observableObserver: observableObserver[any, T]{

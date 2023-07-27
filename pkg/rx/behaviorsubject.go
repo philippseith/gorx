@@ -10,6 +10,7 @@ type BehaviorSubject[T any] struct {
 	mx    sync.RWMutex
 }
 
+// NewBehaviorSubject creates a new BehaviorSubject
 func NewBehaviorSubject[T any](value T) *BehaviorSubject[T] {
 	return &BehaviorSubject[T]{
 		Subject: NewSubject[T](),
