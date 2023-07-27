@@ -1,18 +1,17 @@
 package rx
 
 // Create creates an Observable from a subscribe function, which is called on every subscription
-func Create[T any](subscribe func(o Observer[T])) Observable[T] {
+func Create[T any](subscribe func(o Observer[T]) Subscription) Observable[T] {
 	return &create[T]{s: subscribe}
 }
 
 type create[T any] struct {
 	observable[T]
-	s func(Observer[T])
+	s func(Observer[T]) Subscription
 }
 
 func (c *create[T]) Subscribe(o Observer[T]) Subscription {
-	c.s(o)
-	return &subscription{}
+	return c.s(o)
 }
 
 // Defer creates an Observable for each subscription with the help of s factory function
