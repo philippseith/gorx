@@ -1,7 +1,6 @@
 package rx_test
 
 import (
-	"context"
 	"github.com/stretchr/testify/assert"
 	"testing"
 
@@ -9,7 +8,7 @@ import (
 )
 
 func TestTake(t *testing.T) {
-	ta := rx.Take(rx.From(1, 2, 3, 4), 2)
-	actual := rx.ToSlice(context.Background(), ta)
+	ta := rx.Take[int](rx.From(1, 2, 3, 4), 2)
+	actual := <-rx.ToSlice[int](ta)
 	assert.Equal(t, []int{1, 2}, actual)
 }

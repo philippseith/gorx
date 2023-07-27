@@ -1,7 +1,6 @@
 package rx
 
 import (
-	"context"
 	"time"
 )
 
@@ -18,7 +17,7 @@ type Observable[T any] interface {
 	Take(count int) Observable[T]
 	ToAny() Observable[any]
 	ToConnectable() Connectable[T]
-	ToSlice(ctx context.Context) []T
+	ToSlice() <-chan []T
 }
 
 func ToObservable[T any](s Subscribable[T]) Observable[T] {
@@ -57,6 +56,6 @@ func (o *observable[T]) ToConnectable() Connectable[T] {
 	return ToConnectable[T](o)
 }
 
-func (o *observable[T]) ToSlice(ctx context.Context) []T {
-	return ToSlice[T](ctx, o)
+func (o *observable[T]) ToSlice() <-chan []T {
+	return ToSlice[T](o)
 }

@@ -1,34 +1,23 @@
 package rx
 
-import "context"
-
 // FromChan creates an Observable[T] from a chan T. The channel will be read at
 // once. All values sent before the Observable is subscribed to, will be ignored.
-func FromChan[T any](ctx context.Context, ch <-chan T) Observable[T] {
+func FromChan[T any](ch <-chan T) Observable[T] {
 	oo := &observableObserver[T, T]{
 		t2u: func(t T) T {
 			return t
 		},
 	}
 	go func() {
-		for {
-			select {
-			case t, ok := <-ch:
-				if !ok {
-					oo.Complete()
-					return
-				}
-				oo.Next(t)
-			case <-ctx.Done():
-				oo.Complete()
-				return
-			}
+		for t := range ch {
+			oo.Next(t)
 		}
+		oo.Complete()
 	}()
 	return oo
 }
 
-// ToChan pushes the values from an Observable into a channel. It returns a
+// ToChan pushes the values from a Subscribable into a channel. It returns a
 // channel and the Subscription to the Observable. the channel type Item[T]
 // contains values and a possible error. Note that ToChan will block immediately
 // with cold observables. You need to wrap the cold observable with
