@@ -10,7 +10,9 @@ type Subject[T any] interface {
 }
 
 func NewSubject[T any]() Subject[T] {
-	return &subject[T]{}
+	s := &subject[T]{}
+	s.Subscribable = s
+	return s
 }
 
 type subject[T any] struct {

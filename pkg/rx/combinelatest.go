@@ -13,6 +13,7 @@ func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[a
 		subs:  make([]Subscription, len(sources)),
 		compl: make([]bool, len(sources)),
 	}
+	c.Subscribable = c
 	c.sourceSub = func() {
 		for i, source := range sources {
 			idx := i

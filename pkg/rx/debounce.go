@@ -15,6 +15,7 @@ func Debounce[T any](s Subscribable[T], duration time.Duration) Observable[T] {
 		duration: duration,
 		last:     time.Unix(0, 0),
 	}
+	d.Subscribable = d
 	d.sourceSub = func() { s.Subscribe(d) }
 	return d
 }

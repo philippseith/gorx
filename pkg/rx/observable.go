@@ -24,6 +24,9 @@ func ToObservable[T any](s Subscribable[T]) Observable[T] {
 	return &observable[T]{Subscribable: s}
 }
 
+// observable is an internal type to enrich simple Subscribable objects with the
+// Observable interface. Note that structs containing observable and implementing
+// Subscribable need to initialize observable.Subscribable with themselves
 type observable[T any] struct {
 	Subscribable[T]
 }
