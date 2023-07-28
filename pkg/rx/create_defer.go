@@ -3,7 +3,7 @@ package rx
 // Create creates an Observable from a subscribe function, which is called on every subscription
 func Create[T any](subscribe func(o Observer[T]) Subscription) Observable[T] {
 	c := &create[T]{s: subscribe}
-	c.Subscribable = c // let our internal observable know that we are its subscribable
+	c.Subscribable = c
 	return c
 }
 
