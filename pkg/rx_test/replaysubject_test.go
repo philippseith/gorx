@@ -1,6 +1,7 @@
 package rx_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -105,4 +106,67 @@ func TestReplaySubjectWindow(t *testing.T) {
 	}))
 
 	assert.Equal(t, []int{3}, a3)
+}
+
+func TestReplaySubjectComplete(t *testing.T) {
+	r := rx.NewReplaySubject[int](rx.MaxBufferSize(2))
+
+	r.Next(1)
+	r.Next(2)
+	r.Next(3)
+	r.Complete()
+
+	var a1 []int
+	var c1 bool
+	r.Subscribe(rx.NewObserver(func(value int) {
+		a1 = append(a1, value)
+	}, nil, func() {
+		c1 = true
+	}))
+
+	assert.Equal(t, []int{2, 3}, a1)
+	assert.True(t, c1)
+
+	var a2 []int
+	var c2 bool
+	r.Subscribe(rx.NewObserver(func(value int) {
+		a2 = append(a2, value)
+	}, nil, func() {
+		c2 = true
+	}))
+
+	assert.Equal(t, []int{2, 3}, a2)
+	assert.True(t, c2)
+}
+
+func TestReplaySubjectError(t *testing.T) {
+	r := rx.NewReplaySubject[int](rx.MaxBufferSize(2))
+
+	r.Next(1)
+	r.Next(2)
+	r.Next(3)
+	err := errors.New("shit happens")
+	r.Error(err)
+
+	var a1 []int
+	var err1 error
+	r.Subscribe(rx.NewObserver(func(value int) {
+		a1 = append(a1, value)
+	}, func(err error) {
+		err1 = err
+	}, nil))
+
+	assert.Equal(t, []int{2, 3}, a1)
+	assert.Equal(t, err, err1)
+
+	var a2 []int
+	var err2 error
+	r.Subscribe(rx.NewObserver(func(value int) {
+		a2 = append(a2, value)
+	}, func(err error) {
+		err2 = err
+	}, nil))
+
+	assert.Equal(t, []int{2, 3}, a2)
+	assert.Equal(t, err, err2)
 }

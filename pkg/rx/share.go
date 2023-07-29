@@ -18,10 +18,10 @@ func (sh *share[T]) Subscribe(o Observer[T]) Subscription {
 	if len(sh.subject.observers) == 1 {
 		sh.sn = sh.s.Subscribe(sh)
 	}
-	return NewSubscription(func() {
-		su.Unsubscribe()
+	su.AddTearDownLogic(func() {
 		if len(sh.subject.observers) == 0 {
 			sh.sn.Unsubscribe()
 		}
 	})
+	return su
 }

@@ -53,29 +53,56 @@ func NewReplaySubject[T any](options ...ReplayOption) *ReplaySubject[T] {
 func (r *ReplaySubject[T]) Subscribe(o Observer[T]) Subscription {
 	s := r.subject.Subscribe(o)
 	if r.opt.window == time.Duration(0) {
-		for _, value := range r.buffer {
-			r.subject.Next(value)
-		}
+		func() {
+			r.mx.RLock()
+			defer r.mx.RUnlock()
+
+			for _, value := range r.buffer {
+				r.subject.Next(value)
+			}
+		}()
 	} else {
 		now := time.Now()
 		inWindow := 0
-		for i, value := range r.buffer {
-			if now.Sub(r.timeStamps[i]) <= r.opt.window {
-				r.subject.Next(value)
-			} else {
-				inWindow = i + 1
+		func() {
+			r.mx.RLock()
+			defer r.mx.RUnlock()
+
+			for i, value := range r.buffer {
+				if now.Sub(r.timeStamps[i]) <= r.opt.window {
+					r.subject.Next(value)
+				} else {
+					inWindow = i + 1
+				}
 			}
-		}
-		r.buffer = r.buffer[inWindow:]
-		r.timeStamps = r.timeStamps[inWindow:]
+		}()
+		func() {
+			r.mx.Lock()
+			defer r.mx.Unlock()
+
+			r.buffer = r.buffer[inWindow:]
+			r.timeStamps = r.timeStamps[inWindow:]
+		}()
 	}
+	func() {
+		r.mx.RLock()
+		defer r.mx.RUnlock()
+
+		if r.err != nil {
+			r.subject.Error(r.err)
+		}
+		if r.complete {
+			r.subject.Complete()
+		}
+	}()
 	return s
 }
 
 func (r *ReplaySubject[T]) Next(value T) {
 	func() {
-		r.mx.RLock()
-		defer r.mx.RUnlock()
+		r.mx.Lock()
+		defer r.mx.Unlock()
+
 		if r.opt.maxBufSize == 0 || len(r.buffer) < r.opt.maxBufSize {
 			r.buffer = append(r.buffer, value)
 			if r.opt.window != time.Duration(0) {
@@ -94,8 +121,8 @@ func (r *ReplaySubject[T]) Next(value T) {
 
 func (r *ReplaySubject[T]) Error(err error) {
 	func() {
-		r.mx.RLock()
-		defer r.mx.RUnlock()
+		r.mx.Lock()
+		defer r.mx.Unlock()
 
 		r.err = err
 	}()
@@ -105,8 +132,8 @@ func (r *ReplaySubject[T]) Error(err error) {
 
 func (r *ReplaySubject[T]) Complete() {
 	func() {
-		r.mx.RLock()
-		defer r.mx.RUnlock()
+		r.mx.Lock()
+		defer r.mx.Unlock()
 
 		r.complete = true
 	}()

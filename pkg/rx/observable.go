@@ -14,6 +14,7 @@ type Observable[T any] interface {
 	Debounce(duration time.Duration) Observable[T]
 	DistinctUntilChanged(equal func(T, T) bool) Observable[T]
 	Share() Observable[T]
+	ShareReplay(opts ...ReplayOption) Observable[T]
 	Take(count int) Observable[T]
 	ToAny() Observable[any]
 	ToConnectable() Connectable[T]
@@ -45,6 +46,10 @@ func (o *observable[T]) DistinctUntilChanged(equal func(T, T) bool) Observable[T
 
 func (o *observable[T]) Share() Observable[T] {
 	return Share[T](o)
+}
+
+func (o *observable[T]) ShareReplay(opts ...ReplayOption) Observable[T] {
+	return ShareReplay[T](o, opts...)
 }
 
 func (o *observable[T]) Take(count int) Observable[T] {
