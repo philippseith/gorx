@@ -9,46 +9,66 @@ type ReplaySubject[T any] struct {
 	subject[T]
 	buffer     []T
 	timeStamps []time.Time
-	maxBufSize int
-	window     time.Duration
-	refCount   bool
 	complete   bool
 	err        error
+	opt        replaySubjectOptions
 
 	mx sync.RWMutex
 }
 
-type ReplayOption[T any] func(r *ReplaySubject[T])
+type replaySubjectOptions struct {
+	maxBufSize int
+	window     time.Duration
+	refCount   bool // only used by ShareReplay
+}
 
-func MaxBufferSize[T any](maxBufferSize int) ReplayOption[T] {
-	return func(r *ReplaySubject[T]) {
-		r.maxBufSize = maxBufferSize
+type ReplayOption func(r *replaySubjectOptions)
+
+func MaxBufferSize(maxBufferSize int) ReplayOption {
+	return func(opt *replaySubjectOptions) {
+		opt.maxBufSize = maxBufferSize
 	}
 }
 
-func Window[T any](window time.Duration) ReplayOption[T] {
-	return func(r *ReplaySubject[T]) {
-		r.window = window
+func Window(window time.Duration) ReplayOption {
+	return func(opt *replaySubjectOptions) {
+		opt.window = window
 	}
 }
 
-func RefCount[T any](refCount bool) ReplayOption[T] {
-	return func(r *ReplaySubject[T]) {
-		r.refCount = refCount
+func RefCount(refCount bool) ReplayOption {
+	return func(opt *replaySubjectOptions) {
+		opt.refCount = refCount
 	}
 }
 
-func NewReplaySubject[T any](options ...ReplayOption[T]) *ReplaySubject[T] {
+func NewReplaySubject[T any](options ...ReplayOption) *ReplaySubject[T] {
 	r := &ReplaySubject[T]{}
 	for _, o := range options {
-		o(r)
+		o(&r.opt)
 	}
 	return r
 }
 
 func (r *ReplaySubject[T]) Subscribe(o Observer[T]) Subscription {
 	s := r.subject.Subscribe(o)
-	// TODO Replay (if window is set, remove too old entries)
+	if r.opt.window == time.Duration(0) {
+		for _, value := range r.buffer {
+			r.subject.Next(value)
+		}
+	} else {
+		now := time.Now()
+		inWindow := 0
+		for i, value := range r.buffer {
+			if now.Sub(r.timeStamps[i]) <= r.opt.window {
+				r.subject.Next(value)
+			} else {
+				inWindow = i + 1
+			}
+		}
+		r.buffer = r.buffer[inWindow:]
+		r.timeStamps = r.timeStamps[inWindow:]
+	}
 	return s
 }
 
@@ -56,9 +76,17 @@ func (r *ReplaySubject[T]) Next(value T) {
 	func() {
 		r.mx.RLock()
 		defer r.mx.RUnlock()
-		// TODO check maxBufferSize (0 means no check)
-		r.buffer = append(r.buffer, value)
-		r.timeStamps = append(r.timeStamps, time.Now())
+		if r.opt.maxBufSize == 0 || len(r.buffer) < r.opt.maxBufSize {
+			r.buffer = append(r.buffer, value)
+			if r.opt.window != time.Duration(0) {
+				r.timeStamps = append(r.timeStamps, time.Now())
+			}
+		} else {
+			r.buffer = append(r.buffer[1:], value)
+			if r.opt.window != time.Duration(0) {
+				r.timeStamps = append(r.timeStamps[1:], time.Now())
+			}
+		}
 	}()
 
 	r.subject.Next(value)
