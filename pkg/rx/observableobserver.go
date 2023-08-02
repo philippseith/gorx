@@ -7,7 +7,7 @@ import (
 type observableObserver[T any, U any] struct {
 	observable[U]
 	o         Observer[U]
-	sourceSub func()
+	sourceSub func() Subscription
 	mx        sync.RWMutex
 
 	t2u func(T) U
@@ -47,16 +47,21 @@ func (oo *observableObserver[T, U]) Complete() {
 }
 
 func (oo *observableObserver[T, U]) Subscribe(o Observer[U]) Subscription {
-	if ss := func() func() {
+	var sourceSub Subscription
+	if ss := func() func() Subscription {
 		oo.mx.Lock()
 		defer oo.mx.Unlock()
 
 		oo.o = o
 		return oo.sourceSub
 	}(); ss != nil {
-		ss()
+		sourceSub = ss()
 	}
-	return NewSubscription(oo.unsubscribe)
+	sub := NewSubscription(oo.unsubscribe)
+	if sourceSub != nil {
+		sub.AddSubscription(sourceSub)
+	}
+	return sub
 }
 
 func (oo *observableObserver[T, U]) unsubscribe() {

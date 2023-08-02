@@ -23,7 +23,7 @@ func TestDebounce(t *testing.T) {
 		}
 	}, nil, nil))
 
-	rx.Debounce[time.Time](s, 2*time.Millisecond).Subscribe(rx.NewObserver(func(t time.Time) {
+	rx.DebounceTime[time.Time](s, 2*time.Millisecond).Subscribe(rx.NewObserver(func(t time.Time) {
 		counts[1]++
 	}, nil, nil))
 	<-done

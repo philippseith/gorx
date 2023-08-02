@@ -7,8 +7,8 @@ func Take[T any](s Subscribable[T], count int) Observable[T] {
 		},
 		count: count,
 	}
-	t.sourceSub = func() {
-		s.Subscribe(t)
+	t.sourceSub = func() Subscription {
+		return s.Subscribe(t)
 	}
 	return t
 }

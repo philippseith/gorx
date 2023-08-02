@@ -11,8 +11,8 @@ func Distinct[T comparable](s Subscribable[T]) Observable[T] {
 			return t
 		},
 	}
-	oo.sourceSub = func() {
-		s.Subscribe(NewObserver[T](func(value T) {
+	oo.sourceSub = func() Subscription {
+		return s.Subscribe(NewObserver[T](func(value T) {
 			if _, in := values[value]; !in {
 				oo.Next(value)
 			}
@@ -35,8 +35,8 @@ func DistinctUntilChanged[T any](s Subscribable[T], equal func(T, T) bool) Obser
 	if equal == nil {
 		equal = func(a, b T) bool { return reflect.DeepEqual(a, b) }
 	}
-	oo.sourceSub = func() {
-		s.Subscribe(NewObserver[T](func(value T) {
+	oo.sourceSub = func() Subscription {
+		return s.Subscribe(NewObserver[T](func(value T) {
 			if last == nil || !equal(*last, value) {
 				oo.Next(value)
 			}

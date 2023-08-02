@@ -7,8 +7,8 @@ func ToAny[T any](s Subscribable[T]) Observable[any] {
 			return t
 		},
 	}
-	oa.sourceSub = func() {
-		s.Subscribe(oa)
+	oa.sourceSub = func() Subscription {
+		return s.Subscribe(oa)
 	}
 	return oa
 }

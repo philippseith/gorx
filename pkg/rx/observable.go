@@ -11,7 +11,7 @@ type Subscribable[T any] interface {
 type Observable[T any] interface {
 	Subscribable[T]
 
-	Debounce(duration time.Duration) Observable[T]
+	DebounceTime(duration time.Duration) Observable[T]
 	DistinctUntilChanged(equal func(T, T) bool) Observable[T]
 	Share() Observable[T]
 	ShareReplay(opts ...ReplayOption) Observable[T]
@@ -36,8 +36,8 @@ func (o *observable[T]) Subscribe(or Observer[T]) Subscription {
 	return o.Subscribable.Subscribe(or)
 }
 
-func (o *observable[T]) Debounce(duration time.Duration) Observable[T] {
-	return Debounce[T](o, duration)
+func (o *observable[T]) DebounceTime(duration time.Duration) Observable[T] {
+	return DebounceTime[T](o, duration)
 }
 
 func (o *observable[T]) DistinctUntilChanged(equal func(T, T) bool) Observable[T] {

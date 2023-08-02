@@ -14,35 +14,46 @@ func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[a
 		compl: make([]bool, len(sources)),
 	}
 	c.Subscribable = c
-	c.sourceSub = func() {
+	c.sourceSub = func() Subscription {
 		for i, source := range sources {
 			idx := i
-			c.subs[idx] = source.Subscribe(NewObserver[any](func(next any) {
-				if func() bool {
-					c.observableObserver.mx.Lock()
-					defer c.observableObserver.mx.Unlock()
+			c.subs[idx] = source.Subscribe(NewObserver[any](
+				// Next
+				func(next any) {
+					if func() bool {
+						c.observableObserver.mx.Lock()
+						defer c.observableObserver.mx.Unlock()
 
-					c.lasts[idx] = next
-					return slices.Contains(c.lasts, nil)
-				}() {
-					return
-				}
-				lasts := make([]any, len(c.lasts))
-				copy(lasts, c.lasts)
-				c.observableObserver.Next(combine(lasts...))
-			}, c.observableObserver.Error, func() {
-				if func() bool {
-					c.observableObserver.mx.Lock()
-					defer c.observableObserver.mx.Unlock()
+						c.lasts[idx] = next
+						return slices.Contains(c.lasts, nil)
+					}() {
+						return
+					}
+					lasts := make([]any, len(c.lasts))
+					copy(lasts, c.lasts)
+					c.observableObserver.Next(combine(lasts...))
+				},
+				// Error
+				c.observableObserver.Error,
+				// Complete
+				func() {
+					if func() bool {
+						c.observableObserver.mx.Lock()
+						defer c.observableObserver.mx.Unlock()
 
-					c.compl[idx] = true
-					return slices.Contains(c.compl, false)
-				}() {
-					return
-				}
-				c.observableObserver.Complete()
-			}))
+						c.compl[idx] = true
+						return slices.Contains(c.compl, false)
+					}() {
+						return
+					}
+					c.observableObserver.Complete()
+				}))
 		}
+		return NewSubscription(func() {
+			for _, sub := range c.subs {
+				sub.Unsubscribe()
+			}
+		})
 	}
 	return c
 }

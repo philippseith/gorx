@@ -7,8 +7,8 @@ func Map[T any, U any](s Subscribable[T], mapper func(T) U) Observable[U] {
 		},
 	}
 	oou.Subscribable = oou
-	oou.sourceSub = func() {
-		s.Subscribe(NewObserver[T](func(value T) {
+	oou.sourceSub = func() Subscription {
+		return s.Subscribe(NewObserver[T](func(value T) {
 			oou.Next(mapper(value))
 		}, oou.Error, oou.Complete))
 	}
@@ -23,8 +23,8 @@ func Reduce[T any, U any](s Subscribable[T], acc func(U, T) U, seed U) Observabl
 		},
 	}
 	oou.Subscribable = oou
-	oou.sourceSub = func() {
-		s.Subscribe(NewObserver[T](func(value T) {
+	oou.sourceSub = func() Subscription {
+		return s.Subscribe(NewObserver[T](func(value T) {
 			result[0] = acc(result[0], value)
 		}, oou.Error, func() {
 			oou.Next(result[0])
@@ -47,8 +47,8 @@ func Scan[T any, U any](s Subscribable[T], acc func(U, T) U, seed U) Observable[
 		sc.acc = acc(sc.acc, t)
 		return sc.acc
 	}
-	sc.sourceSub = func() {
-		s.Subscribe(sc)
+	sc.sourceSub = func() Subscription {
+		return s.Subscribe(sc)
 	}
 	return sc
 }
