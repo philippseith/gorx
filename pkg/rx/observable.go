@@ -11,6 +11,7 @@ type Subscribable[T any] interface {
 type Observable[T any] interface {
 	Subscribable[T]
 
+	CatchError(catch func(error) Subscribable[T]) Observable[T]
 	DebounceTime(duration time.Duration) Observable[T]
 	DistinctUntilChanged(equal func(T, T) bool) Observable[T]
 	Share() Observable[T]
@@ -34,6 +35,10 @@ type observable[T any] struct {
 
 func (o *observable[T]) Subscribe(or Observer[T]) Subscription {
 	return o.Subscribable.Subscribe(or)
+}
+
+func (o *observable[T]) CatchError(catch func(error) Subscribable[T]) Observable[T] {
+	return CatchError[T](o, catch)
 }
 
 func (o *observable[T]) DebounceTime(duration time.Duration) Observable[T] {
