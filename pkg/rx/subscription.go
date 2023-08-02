@@ -4,8 +4,8 @@ import "sync"
 
 type Subscription interface {
 	Unsubscribe()
-	AddSubscription(Subscription)
-	AddTearDownLogic(func())
+	AddSubscription(Subscription) Subscription
+	AddTearDownLogic(func()) Subscription
 }
 
 func NewSubscription(unsubscribe func()) Subscription {
@@ -23,18 +23,20 @@ type subscription struct {
 	mx   sync.Mutex
 }
 
-func (s *subscription) AddSubscription(su Subscription) {
+func (s *subscription) AddSubscription(su Subscription) Subscription {
 	s.mx.Lock()
 	defer s.mx.Unlock()
 
 	s.tdls = append(s.tdls, su.Unsubscribe)
+	return s
 }
 
-func (s *subscription) AddTearDownLogic(tld func()) {
+func (s *subscription) AddTearDownLogic(tld func()) Subscription {
 	s.mx.Lock()
 	defer s.mx.Unlock()
 
 	s.tdls = append(s.tdls, tld)
+	return s
 }
 
 func (s *subscription) Unsubscribe() {

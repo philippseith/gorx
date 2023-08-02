@@ -35,14 +35,14 @@ func (ce *catchError[T]) Error(err error) {
 }
 
 func (ce *catchError[T]) Subscribe(o Observer[T]) Subscription {
-	sub := ce.observableObserver.Subscribe(o)
-	sub.AddTearDownLogic(func() {
-		ce.mx.RLock()
-		defer ce.mx.RUnlock()
+	return ce.observableObserver.Subscribe(o).
+		AddTearDownLogic(
+			func() {
+				ce.mx.RLock()
+				defer ce.mx.RUnlock()
 
-		if ce.errSub != nil {
-			ce.errSub.Unsubscribe()
-		}
-	})
-	return sub
+				if ce.errSub != nil {
+					ce.errSub.Unsubscribe()
+				}
+			})
 }
