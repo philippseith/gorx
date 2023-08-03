@@ -1,6 +1,10 @@
 package rx
 
-import "golang.org/x/exp/slices"
+import (
+	"sync"
+
+	"golang.org/x/exp/slices"
+)
 
 // CombineLatest combines multiple Subscribables to create an Observable whose
 // values are calculated from the latest values of each of its input Observables.
@@ -21,8 +25,8 @@ func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[a
 				// Next
 				func(next any) {
 					if func() bool {
-						c.observableObserver.mx.Lock()
-						defer c.observableObserver.mx.Unlock()
+						c.mx.Lock()
+						defer c.mx.Unlock()
 
 						c.lasts[idx] = next
 						return slices.Contains(c.lasts, nil)
@@ -38,8 +42,8 @@ func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[a
 				// Complete
 				func() {
 					if func() bool {
-						c.observableObserver.mx.Lock()
-						defer c.observableObserver.mx.Unlock()
+						c.mx.Lock()
+						defer c.mx.Unlock()
 
 						c.compl[idx] = true
 						return slices.Contains(c.compl, false)
@@ -63,13 +67,15 @@ type combineLatest[T any] struct {
 	lasts []any
 	subs  []Subscription
 	compl []bool
+
+	mx sync.RWMutex
 }
 
 func (c *combineLatest[T]) Subscribe(o Observer[T]) Subscription {
 	subOo := c.observableObserver.Subscribe(o)
 	return NewSubscription(func() {
-		c.observableObserver.mx.RLock()
-		defer c.observableObserver.mx.RUnlock()
+		c.mx.RLock()
+		defer c.mx.RUnlock()
 
 		subOo.Unsubscribe()
 		for _, sub := range c.subs {
