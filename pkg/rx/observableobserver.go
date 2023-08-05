@@ -1,6 +1,8 @@
 package rx
 
 import (
+	"fmt"
+	"runtime/debug"
 	"sync"
 )
 
@@ -17,6 +19,14 @@ func (oo *observableObserver[T, U]) Next(value T) {
 	oo.mx.RLock()
 	defer oo.mx.RUnlock()
 
+	defer func() {
+		if r := recover(); r != nil {
+			if oo.o != nil {
+				oo.o.Error(fmt.Errorf("panic in %T.Next(%v): %v.\n%s", oo.o, value, r, string(debug.Stack())))
+			}
+		}
+	}()
+
 	if oo.o != nil {
 		oo.o.Next(oo.t2u(value))
 	}
@@ -26,6 +36,8 @@ func (oo *observableObserver[T, U]) Error(err error) {
 	func() {
 		oo.mx.RLock()
 		defer oo.mx.RUnlock()
+
+		// no defer recover with sending to o.Error(), as this would build an endless loop
 
 		if oo.o != nil {
 			oo.o.Error(err)
@@ -38,6 +50,14 @@ func (oo *observableObserver[T, U]) Complete() {
 	func() {
 		oo.mx.RLock()
 		defer oo.mx.RUnlock()
+
+		defer func() {
+			if r := recover(); r != nil {
+				if oo.o != nil {
+					oo.o.Error(fmt.Errorf("panic in %T.Complete(): %v\n%s", oo.o, r, string(debug.Stack())))
+				}
+			}
+		}()
 
 		if oo.o != nil {
 			oo.o.Complete()

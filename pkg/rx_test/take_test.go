@@ -1,8 +1,9 @@
 package rx_test
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/philippseith/gorx/pkg/rx"
 )

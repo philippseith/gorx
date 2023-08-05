@@ -1,5 +1,10 @@
 package rx
 
+import (
+	"fmt"
+	"runtime/debug"
+)
+
 // Create creates an Observable from a subscribe function, which is called on every subscription
 func Create[T any](subscribe func(o Observer[T]) Subscription) Observable[T] {
 	c := &create[T]{s: subscribe}
@@ -13,6 +18,12 @@ type create[T any] struct {
 }
 
 func (c *create[T]) Subscribe(o Observer[T]) Subscription {
+	defer func() {
+		if r := recover(); r != nil {
+			o.Error(fmt.Errorf("panic in Create(): %v\n%s", r, string(debug.Stack())))
+		}
+	}()
+
 	return c.s(o)
 }
 
@@ -29,5 +40,11 @@ type deferImp[T any] struct {
 }
 
 func (d *deferImp[T]) Subscribe(o Observer[T]) Subscription {
+	defer func() {
+		if r := recover(); r != nil {
+			o.Error(fmt.Errorf("panic in Defer(): %v\n%s", r, string(debug.Stack())))
+		}
+	}()
+
 	return d.f().Subscribe(o)
 }

@@ -1,6 +1,8 @@
 package rx
 
 import (
+	"fmt"
+	"runtime/debug"
 	"sync"
 )
 
@@ -45,7 +47,14 @@ func (s *subject[T]) Next(value T) {
 	defer s.mx.RUnlock()
 
 	for _, o := range s.observers {
-		o.Next(value)
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					o.Error(fmt.Errorf("panic in %T.Next(%v): %v\n%s", o, value, r, string(debug.Stack())))
+				}
+			}()
+			o.Next(value)
+		}()
 	}
 }
 
@@ -53,6 +62,7 @@ func (s *subject[T]) Error(err error) {
 	s.mx.RLock()
 	defer s.mx.RUnlock()
 
+	// no defer recover with sending to o.Error(), as this would build an endless loop
 	for _, o := range s.observers {
 		o.Error(err)
 	}
@@ -63,6 +73,13 @@ func (s *subject[T]) Complete() {
 	defer s.mx.RUnlock()
 
 	for _, o := range s.observers {
-		o.Complete()
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					o.Error(fmt.Errorf("panic in %T.Complete(): %v\n%s", o, r, string(debug.Stack())))
+				}
+			}()
+			o.Complete()
+		}()
 	}
 }

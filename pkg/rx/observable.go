@@ -11,12 +11,14 @@ type Subscribable[T any] interface {
 type Observable[T any] interface {
 	Subscribable[T]
 
+	AddTearDownLogic(tld func()) Observable[T]
 	CatchError(catch func(error) Subscribable[T]) Observable[T]
 	DebounceTime(duration time.Duration) Observable[T]
 	DistinctUntilChanged(equal func(T, T) bool) Observable[T]
 	Share() Observable[T]
 	ShareReplay(opts ...ReplayOption) Observable[T]
 	Take(count int) Observable[T]
+	Tap(next func(T), err func(error), complete func()) Observable[T]
 	ToAny() Observable[any]
 	ToConnectable() Connectable[T]
 	ToSlice() <-chan []T
@@ -31,10 +33,20 @@ func ToObservable[T any](s Subscribable[T]) Observable[T] {
 // Subscribable need to initialize observable.Subscribable with themselves
 type observable[T any] struct {
 	Subscribable[T]
+	tdls []func()
 }
 
 func (o *observable[T]) Subscribe(or Observer[T]) Subscription {
-	return o.Subscribable.Subscribe(or)
+	sub := o.Subscribable.Subscribe(or)
+	for _, tld := range o.tdls {
+		sub.AddTearDownLogic(tld)
+	}
+	return sub
+}
+
+func (o *observable[T]) AddTearDownLogic(tld func()) Observable[T] {
+	o.tdls = append(o.tdls, tld)
+	return o
 }
 
 func (o *observable[T]) CatchError(catch func(error) Subscribable[T]) Observable[T] {
@@ -59,6 +71,10 @@ func (o *observable[T]) ShareReplay(opts ...ReplayOption) Observable[T] {
 
 func (o *observable[T]) Take(count int) Observable[T] {
 	return Take[T](o, count)
+}
+
+func (o *observable[T]) Tap(next func(T), err func(error), complete func()) Observable[T] {
+	return Tap[T](o, next, err, complete)
 }
 
 func (o *observable[T]) ToAny() Observable[any] {

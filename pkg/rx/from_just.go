@@ -1,5 +1,10 @@
 package rx
 
+import (
+	"fmt"
+	"runtime/debug"
+)
+
 // From creates an Observable that emits all items and then completes
 func From[T any](items ...T) Observable[T] {
 	f := &from[T]{items: items}
@@ -13,6 +18,12 @@ type from[T any] struct {
 }
 
 func (f *from[T]) Subscribe(o Observer[T]) Subscription {
+	defer func() {
+		if r := recover(); r != nil {
+			o.Error(fmt.Errorf("panic in Subscribe(): %v\n%s", r, string(debug.Stack())))
+		}
+	}()
+
 	for _, item := range f.items {
 		o.Next(item)
 	}
@@ -33,6 +44,12 @@ type just[T any] struct {
 }
 
 func (j *just[T]) Subscribe(o Observer[T]) Subscription {
+	defer func() {
+		if r := recover(); r != nil {
+			o.Error(fmt.Errorf("panic in Subscribe(): %v\n%s", r, string(debug.Stack())))
+		}
+	}()
+
 	o.Next(j.value)
 	o.Complete()
 	return &subscription{}
