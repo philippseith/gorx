@@ -40,9 +40,9 @@ func DistinctUntilChanged[T any](s Subscribable[T], equal func(T, T) bool) Obser
 	oo.sourceSub = func() Subscription {
 		return s.Subscribe(NewObserver[T](func(value T) {
 			if last == nil || !equal(*last, value) {
+				last = &value
 				oo.Next(value)
 			}
-			last = &value
 		}, oo.Error, oo.Complete))
 	}
 	return oo
