@@ -1,13 +1,10 @@
 package rx
 
 func ThrowError[T any](err error) Observable[T] {
-	te := &throwError[T]{err: err}
-	te.Subscribable = te
-	return te
+	return ToObservable[T](&throwError[T]{err: err})
 }
 
 type throwError[T any] struct {
-	observableObserver[T, T]
 	err error
 }
 

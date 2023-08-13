@@ -11,21 +11,16 @@ import (
 // TODO Behavior is not correct. It should emit after time, not when the first goes in after that time
 func DebounceTime[T any](s Subscribable[T], duration time.Duration) Observable[T] {
 	d := &debounceTime[T]{
-		observableObserver: observableObserver[T, T]{
-			t2u: func(t T) T {
-				return t
-			},
-		},
+		Operator: Operator[T, T]{t2u: func(t T) T { return t }},
 		duration: duration,
 		last:     time.Unix(0, 0),
 	}
-	d.Subscribable = d
-	d.sourceSub = func() Subscription { return s.Subscribe(d) }
-	return d
+	d.SubscribeToSource(d, s)
+	return ToObservable[T](d)
 }
 
 type debounceTime[T any] struct {
-	observableObserver[T, T]
+	Operator[T, T]
 	duration time.Duration
 	last     time.Time
 }
@@ -33,34 +28,33 @@ type debounceTime[T any] struct {
 func (d *debounceTime[T]) Next(value T) {
 	if time.Since(d.last) > d.duration {
 		d.last = time.Now()
-		d.observableObserver.Next(value)
+		d.Operator.Next(value)
 	}
 }
 
 func Debounce[T any, U any](s Subscribable[T], trigger Subscribable[U]) Observable[T] {
 	d := &debounce[T]{
-		observableObserver: observableObserver[T, T]{
-			t2u: func(t T) T {
-				return t
-			},
-		},
+		Operator: Operator[T, T]{t2u: func(t T) T { return t }},
 	}
-	d.Subscribable = d
-	d.sourceSub = func() Subscription { return s.Subscribe(d) }
 
-	trigger.Subscribe(OnNext(func(U) {
+	triggerSub := trigger.Subscribe(OnNext(func(U) {
 		d.mx.RLock()
 		defer d.mx.RUnlock()
 
 		if d.hasLast {
-			d.o.Next(d.last)
+			d.hasLast = false
+			d.Next(d.last)
 		}
 	}))
-	return d
+	d.SubscribeToSource(d, s)
+	ds := ToObservable[T](d)
+	// Unsubscribe trigger
+	ds.AddTearDownLogic(triggerSub.Unsubscribe)
+	return ds
 }
 
 type debounce[T any] struct {
-	observableObserver[T, T]
+	Operator[T, T]
 	hasLast bool
 	last    T
 	mx      sync.RWMutex

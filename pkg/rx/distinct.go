@@ -6,21 +6,14 @@ import "reflect"
 // Subscribable that are distinct by comparison from previous items.
 func Distinct[T comparable](s Subscribable[T]) Observable[T] {
 	values := map[T]struct{}{}
-	oo := &observableObserver[T, T]{
-		t2u: func(t T) T {
-			return t
-		},
-	}
-	oo.Subscribable = oo
-	oo.sourceSub = func() Subscription {
-		return s.Subscribe(NewObserver[T](func(value T) {
-			if _, in := values[value]; !in {
-				oo.Next(value)
-			}
-			values[value] = struct{}{}
-		}, oo.Error, oo.Complete))
-	}
-	return oo
+	d := &Operator[T, T]{t2u: func(t T) T { return t }}
+	d.sourceSubscription = s.Subscribe(NewObserver[T](func(value T) {
+		if _, in := values[value]; !in {
+			d.Next(value)
+		}
+		values[value] = struct{}{}
+	}, d.Error, d.Complete))
+	return ToObservable[T](d)
 }
 
 // DistinctUntilChanged returns a Observable that emits all values pushed by the
@@ -28,22 +21,15 @@ func Distinct[T comparable](s Subscribable[T]) Observable[T] {
 // result observable emitted.
 func DistinctUntilChanged[T any](s Subscribable[T], equal func(T, T) bool) Observable[T] {
 	var last *T
-	oo := &observableObserver[T, T]{
-		t2u: func(t T) T {
-			return t
-		},
-	}
-	oo.Subscribable = oo
+	d := &Operator[T, T]{t2u: func(t T) T { return t }}
 	if equal == nil {
 		equal = func(a, b T) bool { return reflect.DeepEqual(a, b) }
 	}
-	oo.sourceSub = func() Subscription {
-		return s.Subscribe(NewObserver[T](func(value T) {
-			if last == nil || !equal(*last, value) {
-				oo.Next(value)
-			}
-			last = &value
-		}, oo.Error, oo.Complete))
-	}
-	return oo
+	d.sourceSubscription = s.Subscribe(NewObserver[T](func(value T) {
+		if last == nil || !equal(*last, value) {
+			d.Next(value)
+		}
+		last = &value
+	}, d.Error, d.Complete))
+	return ToObservable[T](d)
 }

@@ -4,10 +4,12 @@ import (
 	"time"
 )
 
+// Subscribable is an object which can be subscribed to
 type Subscribable[T any] interface {
 	Subscribe(o Observer[T]) Subscription
 }
 
+// Observable attaches all operators with only on generic parameter on a Subscribable
 type Observable[T any] interface {
 	Subscribable[T]
 
@@ -18,12 +20,13 @@ type Observable[T any] interface {
 	Share() Observable[T]
 	ShareReplay(opts ...ReplayOption) Observable[T]
 	Take(count int) Observable[T]
-	Tap(next func(T), err func(error), complete func()) Observable[T]
+	Tap(next func(T) T, err func(error) error, complete func()) Observable[T]
 	ToAny() Observable[any]
 	ToConnectable() Connectable[T]
 	ToSlice() <-chan []T
 }
 
+// ToObservable extends a Subscribable to an Observable
 func ToObservable[T any](s Subscribable[T]) Observable[T] {
 	return &observable[T]{Subscribable: s}
 }
@@ -50,7 +53,7 @@ func (o *observable[T]) AddTearDownLogic(tld func()) Observable[T] {
 }
 
 func (o *observable[T]) CatchError(catch func(error) Subscribable[T]) Observable[T] {
-	return CatchError[T](o, catch)
+	return Catch[T](o, catch)
 }
 
 func (o *observable[T]) DebounceTime(duration time.Duration) Observable[T] {
@@ -73,7 +76,7 @@ func (o *observable[T]) Take(count int) Observable[T] {
 	return Take[T](o, count)
 }
 
-func (o *observable[T]) Tap(next func(T), err func(error), complete func()) Observable[T] {
+func (o *observable[T]) Tap(next func(T) T, err func(error) error, complete func()) Observable[T] {
 	return Tap[T](o, next, err, complete)
 }
 

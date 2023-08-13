@@ -3,18 +3,14 @@ package rx
 // FromChan creates an Observable[T] from a chan T. The channel will be read at
 // once. All values sent before the Observable is subscribed to, will be ignored.
 func FromChan[T any](ch <-chan T) Observable[T] {
-	oo := &observableObserver[T, T]{
-		t2u: func(t T) T {
-			return t
-		},
-	}
+	fc := &Operator[T, T]{t2u: func(t T) T { return t }}
 	go func() {
 		for t := range ch {
-			oo.Next(t)
+			fc.Next(t)
 		}
-		oo.Complete()
+		fc.Complete()
 	}()
-	return oo
+	return ToObservable[T](fc)
 }
 
 // ToChan pushes the values from a Subscribable into a channel. It returns a

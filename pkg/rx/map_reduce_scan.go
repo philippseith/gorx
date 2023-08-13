@@ -1,54 +1,33 @@
 package rx
 
 func Map[T any, U any](s Subscribable[T], mapper func(T) U) Observable[U] {
-	oou := &observableObserver[U, U]{
-		t2u: func(t U) U {
-			return t
-		},
-	}
-	oou.Subscribable = oou
-	oou.sourceSub = func() Subscription {
-		return s.Subscribe(NewObserver[T](func(value T) {
-			oou.Next(mapper(value))
-		}, oou.Error, oou.Complete))
-	}
-	return oou
+	m := &Operator[T, U]{t2u: mapper}
+	m.SubscribeToSource(m, s)
+	return ToObservable[U](m)
 }
 
 func Reduce[T any, U any](s Subscribable[T], acc func(U, T) U, seed U) Observable[U] {
-	result := []U{seed}
-	oou := &observableObserver[U, U]{
-		t2u: func(t U) U {
-			return t
-		},
-	}
-	oou.Subscribable = oou
-	oou.sourceSub = func() Subscription {
-		return s.Subscribe(NewObserver[T](func(value T) {
-			result[0] = acc(result[0], value)
-		}, oou.Error, func() {
-			oou.Next(result[0])
-			oou.Complete()
-		}))
-	}
-	return oou
+	result := &seed
+	r := &Operator[U, U]{t2u: func(u U) U { return u }}
+	r.sourceSubscription = s.Subscribe(NewObserver[T](func(value T) {
+		*result = acc(*result, value)
+	}, r.Error, func() {
+		r.Next(*result)
+		r.Complete()
+	}))
+
+	return ToObservable[U](r)
 }
 
 func Scan[T any, U any](s Subscribable[T], acc func(U, T) U, seed U) Observable[U] {
 	sc := &struct {
-		observableObserver[T, U]
+		Operator[T, U]
 		acc U
-	}{
-		observableObserver: observableObserver[T, U]{},
-		acc:                seed,
-	}
-	sc.Subscribable = sc
-	sc.t2u = func(t T) U {
+	}{acc: seed}
+	sc.Operator = Operator[T, U]{t2u: func(t T) U {
 		sc.acc = acc(sc.acc, t)
 		return sc.acc
-	}
-	sc.sourceSub = func() Subscription {
-		return s.Subscribe(sc)
-	}
-	return sc
+	}}
+	sc.SubscribeToSource(sc, s)
+	return ToObservable[U](sc)
 }

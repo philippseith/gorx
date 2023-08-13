@@ -9,7 +9,12 @@ import (
 )
 
 func TestTake(t *testing.T) {
-	ta := rx.Take[int](rx.From(1, 2, 3, 4), 2)
-	actual := <-rx.ToSlice[int](ta)
+	c := rx.From(1, 2, 3, 4).ToConnectable()
+	ta := rx.Take[int](c, 2)
+	var actual []int
+	ta.Subscribe(rx.OnNext(func(t int) {
+		actual = append(actual, t)
+	}))
+	c.Connect()
 	assert.Equal(t, []int{1, 2}, actual)
 }
