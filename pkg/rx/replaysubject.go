@@ -44,6 +44,7 @@ func RefCount(refCount bool) ReplayOption {
 
 func NewReplaySubject[T any](options ...ReplayOption) *ReplaySubject[T] {
 	r := &ReplaySubject[T]{}
+	r.Subscribable = r
 	for _, o := range options {
 		o(&r.opt)
 	}
