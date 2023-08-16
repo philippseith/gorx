@@ -15,6 +15,7 @@ type Observable[T any] interface {
 
 	AddTearDownLogic(tld func()) Observable[T]
 	CatchError(catch func(error) Subscribable[T]) Observable[T]
+	Concat(...Subscribable[T]) Observable[T]
 	DebounceTime(duration time.Duration) Observable[T]
 	DistinctUntilChanged(equal func(T, T) bool) Observable[T]
 	Share() Observable[T]
@@ -54,6 +55,11 @@ func (o *observable[T]) AddTearDownLogic(tld func()) Observable[T] {
 
 func (o *observable[T]) CatchError(catch func(error) Subscribable[T]) Observable[T] {
 	return Catch[T](o, catch)
+}
+
+func (o *observable[T]) Concat(sources ...Subscribable[T]) Observable[T] {
+
+	return Concat[T](append([]Subscribable[T]{o}, sources...)...)
 }
 
 func (o *observable[T]) DebounceTime(duration time.Duration) Observable[T] {
