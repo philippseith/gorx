@@ -1,0 +1,21 @@
+{{ define "live-hook-reload" }}
+<div live-hook="reload"></div>
+<script>
+    window.Hooks = {
+        "reload": {
+            mounted: function() {
+                let initial = true
+                this.handleEvent("reload", () => {
+                    if (initial) {
+                        // the server can not determine if the page was loaded or the server was restarted
+                        // and the page still exists. But we can and reload only in the second case
+                        initial = false
+                    } else {
+                        location.reload()
+                    }
+                });
+            }
+        }
+    };
+</script>
+{{ end }}

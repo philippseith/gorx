@@ -1,0 +1,21 @@
+{{ define "title" }} Overview {{ end }}
+{{ define "view" }}
+
+<table>
+    <tr>
+        <th>Id</th>
+        <th>State</th>
+    </tr>
+    {{ range $row := .Assigns.Data }}
+    <tr>
+        <th>{{ $row.Id }}</th>
+        <th>
+            {{ range $state := $row.States }}
+                <div>{{ $state }}</div>
+            {{ end }}
+        </th>
+    </tr>
+    {{ end }}
+</table>
+
+{{ end }}
