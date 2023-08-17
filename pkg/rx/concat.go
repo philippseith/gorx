@@ -2,6 +2,8 @@ package rx
 
 import "sync"
 
+// Concat creates an output Observable which sequentially emits all values from
+// the first given Observable and then moves on to the next.
 func Concat[T any](sources ...Subscribable[T]) Observable[T] {
 	c := &concat[T]{sources: sources}
 	if len(c.sources) > 0 {

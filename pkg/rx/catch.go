@@ -2,6 +2,8 @@ package rx
 
 import "sync"
 
+// Catch catches errors on the Subscribable to be handled by returning a new
+// Subscribable
 func Catch[T any](s Subscribable[T], catchError func(error) Subscribable[T]) Observable[T] {
 	ce := &catch[T]{
 		Operator: Operator[T, T]{t2u: func(t T) T { return t }},
