@@ -2,10 +2,17 @@ package rx
 
 import "sync"
 
+// AsyncSubject is a variant of Subject that only emits a value when it
+// completes. It will emit its latest value to all its observers on completion.
 type AsyncSubject[T any] struct {
 	Subject[T]
 	value T
 	mx    sync.RWMutex
+}
+
+// NewAsyncSubject creates a new AsyncSubject
+func NewAsyncSubject[T any]() *AsyncSubject[T] {
+	return &AsyncSubject[T]{Subject: NewSubject[T]()}
 }
 
 func (as *AsyncSubject[T]) Next(value T) {

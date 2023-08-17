@@ -2,14 +2,19 @@ package rx
 
 import "sync"
 
+// BehaviorSubject is a variant of Subject that requires an initial value and
+// emits its current value whenever it is subscribed to.
 type BehaviorSubject[T any] struct {
 	Subject[T]
 	value T
 	mx    sync.RWMutex
 }
 
+// NewBehaviorSubject creates a new BehaviorSubject
 func NewBehaviorSubject[T any](value T) *BehaviorSubject[T] {
-	return &BehaviorSubject[T]{value: value}
+	return &BehaviorSubject[T]{
+		Subject: NewSubject[T](),
+		value:   value}
 }
 
 func (bs *BehaviorSubject[T]) Value() T {
