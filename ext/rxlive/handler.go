@@ -13,7 +13,8 @@ import (
 
 // NewHandler creates an http.Handler wrapping a live.Handler which fills the
 // template with data of type T. To handle temporary connection losses on the
-// client side, the live-hook-reload template can be used.
+// client side, the live-hook-reload template can be included with
+// {{ template live-hook-reload }} in your template
 func NewHandler[T any](tmpl *template.Template, model rx.Subscribable[T]) http.Handler {
 
 	var err error
