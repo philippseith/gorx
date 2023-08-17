@@ -1,6 +1,6 @@
 module github.com/philippseith/gorx/ext
 
-go 1.21.0
+go 1.20
 
 require (
 	github.com/gin-gonic/gin v1.9.1
