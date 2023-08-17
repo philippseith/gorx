@@ -8,14 +8,17 @@ import (
 	"net/http"
 
 	"github.com/jfyne/live"
+
 	"github.com/philippseith/gorx/pkg/rx"
 )
 
 // NewHandler creates an http.Handler wrapping a live.Handler which fills the
-// template with data of type T. To handle temporary connection losses on the
-// client side, the live-hook-reload template can be included with
-// {{ template live-hook-reload }} in your template
-func NewHandler[T any](tmpl *template.Template, model rx.Subscribable[T]) http.Handler {
+// template with data of type T from the model parameter. The sessionAuthKey is
+// used to build session cookies, by which the client of a live session can be
+// identified. To handle temporary connection losses on the client side, the
+// live-hook-reload template can be included with {{ template live-hook-reload
+// }} in your template.
+func NewHandler[T any](tmpl *template.Template, model rx.Subscribable[T], sessionAuthKey []byte) http.Handler {
 
 	var err error
 	tmpl, err = tmpl.Parse(liveHookReload)
@@ -42,7 +45,7 @@ func NewHandler[T any](tmpl *template.Template, model rx.Subscribable[T]) http.H
 		return vm, nil
 	})
 
-	return live.NewHttpHandler(live.NewCookieStore("session-name", []byte("weak-secret")), h)
+	return live.NewHttpHandler(live.NewCookieStore("session-name", sessionAuthKey), h)
 }
 
 //go:embed reload.html
