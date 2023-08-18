@@ -4,7 +4,13 @@ import (
 	"time"
 )
 
-// Subscribable is an object which can be subscribed to
+// Subscribable is an object which can be subscribed to.
+//
+//	Subscribe(o Observer[T]) Subscription
+//
+// Subscribe registers an Observer for the stream of events. All Observables
+// returned by operators subscribe to their sources when their own Subscribe
+// method is called
 type Subscribable[T any] interface {
 	Subscribe(o Observer[T]) Subscription
 }
@@ -14,7 +20,7 @@ type Observable[T any] interface {
 	Subscribable[T]
 
 	AddTearDownLogic(tld func()) Observable[T]
-	CatchError(catch func(error) Subscribable[T]) Observable[T]
+	Catch(catch func(error) Subscribable[T]) Observable[T]
 	Concat(...Subscribable[T]) Observable[T]
 	DebounceTime(duration time.Duration) Observable[T]
 	DistinctUntilChanged(equal func(T, T) bool) Observable[T]
@@ -53,7 +59,7 @@ func (o *observable[T]) AddTearDownLogic(tld func()) Observable[T] {
 	return o
 }
 
-func (o *observable[T]) CatchError(catch func(error) Subscribable[T]) Observable[T] {
+func (o *observable[T]) Catch(catch func(error) Subscribable[T]) Observable[T] {
 	return Catch[T](o, catch)
 }
 

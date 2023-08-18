@@ -20,7 +20,7 @@ func TestCatch(t *testing.T) {
 		})
 	}).ToConnectable()
 
-	cc := c.CatchError(func(err error) rx.Subscribable[int] {
+	cc := c.Catch(func(err error) rx.Subscribable[int] {
 		return rx.Create(func(o rx.Observer[int]) rx.Subscription {
 			o.Next(3)
 			o.Next(4)
