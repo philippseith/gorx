@@ -1,19 +1,15 @@
 {{ define "title" }} Overview {{ end }}
 {{ define "view" }}
 
-<table>
-    <tr>
+<table id="table">
+    <tr id="header">
         <th>Id</th>
-        <th>State</th>
+        <th>Time</th>
     </tr>
-    {{ range $row := .Assigns.Data }}
-    <tr>
-        <th>{{ $row.Id }}</th>
-        <th>
-            {{ range $state := $row.States }}
-                <div>{{ $state }}</div>
-            {{ end }}
-        </th>
+    {{ range $idx, $row := .Assigns.Data }}
+    <tr id="{{ $row.Id }}_{{ $idx }}" >
+        <th id="id_{{ $row.Id }}_{{ $idx }}">{{ $row.Id }}</th>
+        <th id="time_{{ $row.Id }}_{{ $idx }}">{{ $row.Time }}</th>
     </tr>
     {{ end }}
 </table>
