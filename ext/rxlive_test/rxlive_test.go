@@ -45,7 +45,7 @@ type Row struct {
 
 func Model() rx.Subscribable[[]Row] {
 	t1 := rx.NewTicker(0, 1000*time.Millisecond)
-	t2 := rx.NewTicker(300*time.Millisecond, 100*time.Millisecond)
+	t2 := rx.NewTicker(300*time.Millisecond, 10*time.Millisecond)
 	return rx.CombineLatest2(func(t1, t2 time.Time) []Row {
 		if t1.Second()%2 == 0 {
 			return []Row{

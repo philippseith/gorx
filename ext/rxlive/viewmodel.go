@@ -3,6 +3,7 @@ package rxlive
 import (
 	"context"
 	"log"
+	"sync"
 
 	"github.com/jfyne/live"
 
@@ -32,11 +33,22 @@ func newViewModel[T any](ctx context.Context, socket live.Socket, model rx.Subsc
 			if err := socket.Send("reload", "nil"); err != nil {
 				log.Print(err)
 			}
+			var mx sync.Mutex
 			vm.sub = model.Subscribe(rx.OnNext(func(data T) {
+				// The order of the update events needs to be preserved,
+				// as socket.Self seems not to be reentrancy-safe
+				mx.Lock()
+				defer mx.Unlock()
+
 				if err := vm.socket.Self(vm.ctx, "vmChanged", data); err != nil {
 					log.Print(err)
 				}
 			}))
+			// TODO When is ctx.Done?
+			go func() {
+				<-ctx.Done()
+				vm.sub.Unsubscribe()
+			}()
 		}
 	}
 	return vm, nil
