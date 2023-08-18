@@ -29,25 +29,48 @@ func (c *concat[T]) Error(err error) {
 }
 
 func (c *concat[T]) Complete() {
-	c.mx.Lock()
-	defer c.mx.Unlock()
+	if source := func() Subscribable[T] {
+		c.mx.Lock()
+		defer c.mx.Unlock()
 
-	c.sub.Unsubscribe()
-	c.sources = c.sources[1:]
-	if len(c.sources) > 0 {
-		c.sub = c.sources[0].Subscribe(c)
-	} else if c.o != nil {
-		c.o.Complete()
+		// Might be nil when the source completes immediately
+		if c.sub != nil {
+			c.sub.Unsubscribe()
+		}
+		c.sources = c.sources[1:]
+		if len(c.sources) > 0 {
+			return c.sources[0]
+		} else if c.o != nil {
+			c.o.Complete()
+		}
+		return nil
+	}(); source != nil {
+		sub := source.Subscribe(c)
+		func() {
+			c.mx.Lock()
+			defer c.mx.Unlock()
+			c.sub = sub
+		}()
 	}
 }
 
 func (c *concat[T]) Subscribe(o Observer[T]) Subscription {
-	c.mx.Lock()
-	defer c.mx.Unlock()
+	if source := func() Subscribable[T] {
+		c.mx.Lock()
+		defer c.mx.Unlock()
 
-	c.o = o
-	if len(c.sources) > 0 {
-		c.sub = c.sources[0].Subscribe(c)
+		c.o = o
+		if len(c.sources) > 0 {
+			return c.sources[0]
+		}
+		return nil
+	}(); source != nil {
+		sub := source.Subscribe(c)
+		func() {
+			c.mx.Lock()
+			defer c.mx.Unlock()
+			c.sub = sub
+		}()
 	}
 	return NewSubscription(func() {
 		c.o = nil
