@@ -8,8 +8,9 @@ import (
 )
 
 type Operator[T any, U any] struct {
-	outObserver        Observer[U]
+	onSubscribe        func() Subscription
 	sourceSubscription Subscription
+	outObserver        Observer[U]
 	mx                 sync.RWMutex
 	t2u                func(T) U
 }
@@ -71,6 +72,9 @@ func (op *Operator[T, U]) Subscribe(o Observer[U]) Subscription {
 	op.mx.Lock()
 	defer op.mx.Unlock()
 	op.outObserver = o
+	if op.onSubscribe != nil {
+		op.sourceSubscription = op.onSubscribe()
+	}
 
 	return NewSubscription(func() {
 		op.mx.RLock()
@@ -82,6 +86,6 @@ func (op *Operator[T, U]) Subscribe(o Observer[U]) Subscription {
 	})
 }
 
-func (op *Operator[T, U]) SubscribeToSource(ob Observer[T], s Subscribable[T]) {
-	op.sourceSubscription = s.Subscribe(ob)
+func (op *Operator[T, U]) prepareSubscribe(onSubscribe func() Subscription) {
+	op.onSubscribe = onSubscribe
 }

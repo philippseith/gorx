@@ -2,31 +2,40 @@ package rx
 
 // FromChan creates an Observable[T] from a chan T. The channel will be read at
 // once. All values sent before the Observable is subscribed to, will be ignored.
+// FromChan should only be subscribed once simultaneously.
 func FromChan[T any](ch <-chan T) Observable[T] {
 	fc := &Operator[T, T]{t2u: func(t T) T { return t }}
-	go func() {
-		for t := range ch {
-			fc.Next(t)
-		}
-		fc.Complete()
-	}()
+	fc.prepareSubscribe(func() Subscription {
+		go func() {
+			for t := range ch {
+				fc.Next(t)
+			}
+			fc.Complete()
+		}()
+		return NewSubscription(func() {})
+	})
+	// TODO prevent simultaneous subscriptions
 	return ToObservable[T](fc)
 }
 
 // FromItemChan creates an Observable[T] from a chan Item[T]. The channel will be read at
 // once. All values sent before the Observable is subscribed to, will be ignored.
+// FromItemChan should only be subscribed once simultaneously.
 func FromItemChan[T any](ch <-chan Item[T]) Observable[T] {
 	fc := &Operator[T, T]{t2u: func(t T) T { return t }}
-	go func() {
-		for item := range ch {
-			if item.E != nil {
-				fc.Error(item.E)
-			} else {
-				fc.Next(item.V)
+	fc.prepareSubscribe(func() Subscription {
+		go func() {
+			for item := range ch {
+				if item.E != nil {
+					fc.Error(item.E)
+				} else {
+					fc.Next(item.V)
+				}
 			}
-		}
-		fc.Complete()
-	}()
+			fc.Complete()
+		}()
+		return NewSubscription(func() {})
+	})
 	return ToObservable[T](fc)
 }
 

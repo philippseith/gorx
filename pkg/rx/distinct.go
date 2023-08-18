@@ -7,12 +7,14 @@ import "reflect"
 func Distinct[T comparable](s Subscribable[T]) Observable[T] {
 	values := map[T]struct{}{}
 	d := &Operator[T, T]{t2u: func(t T) T { return t }}
-	d.sourceSubscription = s.Subscribe(NewObserver[T](func(value T) {
-		if _, in := values[value]; !in {
-			d.Next(value)
-		}
-		values[value] = struct{}{}
-	}, d.Error, d.Complete))
+	d.prepareSubscribe(func() Subscription {
+		return s.Subscribe(NewObserver[T](func(value T) {
+			if _, in := values[value]; !in {
+				d.Next(value)
+			}
+			values[value] = struct{}{}
+		}, d.Error, d.Complete))
+	})
 	return ToObservable[T](d)
 }
 
@@ -25,11 +27,13 @@ func DistinctUntilChanged[T any](s Subscribable[T], equal func(T, T) bool) Obser
 	if equal == nil {
 		equal = func(a, b T) bool { return reflect.DeepEqual(a, b) }
 	}
-	d.sourceSubscription = s.Subscribe(NewObserver[T](func(value T) {
-		if last == nil || !equal(*last, value) {
-			d.Next(value)
-		}
-		last = &value
-	}, d.Error, d.Complete))
+	d.prepareSubscribe(func() Subscription {
+		return s.Subscribe(NewObserver[T](func(value T) {
+			if last == nil || !equal(*last, value) {
+				d.Next(value)
+			}
+			last = &value
+		}, d.Error, d.Complete))
+	})
 	return ToObservable[T](d)
 }

@@ -6,9 +6,6 @@ import "sync"
 // the first given Observable and then moves on to the next.
 func Concat[T any](sources ...Subscribable[T]) Observable[T] {
 	c := &concat[T]{sources: sources}
-	if len(c.sources) > 0 {
-		c.sub = c.sources[0].Subscribe(c)
-	}
 	return ToObservable[T](c)
 }
 
@@ -49,6 +46,9 @@ func (c *concat[T]) Subscribe(o Observer[T]) Subscription {
 	defer c.mx.Unlock()
 
 	c.o = o
+	if len(c.sources) > 0 {
+		c.sub = c.sources[0].Subscribe(c)
+	}
 	return NewSubscription(func() {
 		c.o = nil
 		if c.sub != nil {

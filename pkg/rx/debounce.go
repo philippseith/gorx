@@ -19,29 +19,30 @@ func Debounce[T any, U any](s Subscribable[T], trigger Subscribable[U]) Observab
 		Operator: Operator[T, T]{t2u: func(t T) T { return t }},
 	}
 
-	triggerSub := trigger.Subscribe(OnNext(func(U) {
-		if func() bool {
-			d.mx.RLock()
-			defer d.mx.RUnlock()
+	d.prepareSubscribe(func() Subscription {
+		triggerSub := trigger.Subscribe(OnNext(func(U) {
+			if func() bool {
+				d.mx.RLock()
+				defer d.mx.RUnlock()
 
-			return d.hasLast
-		}() {
-			func() {
-				d.mx.Lock()
-				defer d.mx.Unlock()
+				return d.hasLast
+			}() {
+				func() {
+					d.mx.Lock()
+					defer d.mx.Unlock()
 
-				d.hasLast = false
-			}()
-			if o := d.getObserver(); o != nil {
-				o.Next(d.last)
+					d.hasLast = false
+				}()
+				if o := d.getObserver(); o != nil {
+					o.Next(d.last)
+				}
 			}
-		}
 
-	}))
-	d.SubscribeToSource(d, s)
+		}))
+		return s.Subscribe(d).AddSubscription(triggerSub)
+	})
 	ds := ToObservable[T](d)
 	// Unsubscribe trigger
-	ds.AddTearDownLogic(triggerSub.Unsubscribe)
 	return ds
 }
 

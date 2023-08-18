@@ -5,7 +5,7 @@ func Take[T any](s Subscribable[T], count int) Observable[T] {
 		Operator: Operator[T, T]{t2u: func(t T) T { return t }},
 		count:    count,
 	}
-	t.SubscribeToSource(t, s)
+	t.prepareSubscribe(func() Subscription { return s.Subscribe(t) })
 	return ToObservable[T](t)
 }
 

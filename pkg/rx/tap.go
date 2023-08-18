@@ -13,12 +13,13 @@ func Tap[T any](s Subscribable[T], next func(T) T, err func(error) error, comple
 		err:      err,
 		complete: complete,
 	}
-	s.Subscribe(t)
+	t.onSubscribe = func() Subscription { return s.Subscribe(t) }
 	return ToObservable[T](t)
 }
 
 type tap[T any] struct {
 	observer           Observer[T]
+	onSubscribe        func() Subscription
 	sourceSubscription Subscription
 	next               func(T) T
 	err                func(error) error
@@ -92,6 +93,7 @@ func (t *tap[T]) Subscribe(o Observer[T]) Subscription {
 	t.mx.Lock()
 	defer t.mx.Unlock()
 	t.observer = o
+	t.sourceSubscription = t.onSubscribe()
 
 	return NewSubscription(func() {
 		t.mx.RLock()

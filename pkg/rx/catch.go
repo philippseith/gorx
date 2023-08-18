@@ -9,7 +9,18 @@ func Catch[T any](s Subscribable[T], catchError func(error) Subscribable[T]) Obs
 		Operator: Operator[T, T]{t2u: func(t T) T { return t }},
 		catch:    catchError,
 	}
-	ce.SubscribeToSource(ce, s)
+	ce.prepareSubscribe(func() Subscription {
+		return s.Subscribe(ce).
+			AddTearDownLogic(
+				func() {
+					ce.mx.RLock()
+					defer ce.mx.RUnlock()
+
+					if ce.errSub != nil {
+						ce.errSub.Unsubscribe()
+					}
+				})
+	})
 	return ToObservable[T](ce)
 }
 
@@ -26,17 +37,4 @@ func (ce *catch[T]) Error(err error) {
 	defer ce.mx.Unlock()
 
 	ce.errSub = ce.catch(err).Subscribe(ce.getObserver())
-}
-
-func (ce *catch[T]) Subscribe(o Observer[T]) Subscription {
-	return ce.Operator.Subscribe(o).
-		AddTearDownLogic(
-			func() {
-				ce.mx.RLock()
-				defer ce.mx.RUnlock()
-
-				if ce.errSub != nil {
-					ce.errSub.Unsubscribe()
-				}
-			})
 }
