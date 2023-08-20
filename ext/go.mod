@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/gin-gonic/gin v1.9.1
-	github.com/jfyne/live v0.15.5
+	github.com/jfyne/live v0.15.6
 	github.com/philippseith/gorx v0.0.0-20230816132340-dd78d54482bc
 	github.com/stretchr/testify v1.8.4
 )
