@@ -11,43 +11,55 @@ import (
 )
 
 type viewModel[T any] struct {
-	data   T
-	sub    rx.Subscription
-	ctx    context.Context
-	socket live.Socket
+	data T
+	sub  rx.Subscription
+	mx   sync.Mutex
 }
 
 func (v *viewModel[T]) Data() T {
 	return v.data
 }
 
+func (v *viewModel[T]) subscribe(sub rx.Subscription) {
+	v.mx.Lock()
+	defer v.mx.Unlock()
+
+	v.sub = sub
+}
+
+func (v *viewModel[T]) unsubscribe() {
+	v.mx.Lock()
+	defer v.mx.Unlock()
+
+	if v.sub != nil {
+		v.sub.Unsubscribe()
+		v.sub = nil
+	}
+}
+
 func newViewModel[T any](ctx context.Context, socket live.Socket, model rx.Subscribable[T]) (any, error) {
 	vm, ok := socket.Assigns().(*viewModel[T])
 	if !ok {
-		vm = &viewModel[T]{
-			ctx:    ctx,
-			socket: socket,
-		}
+		vm = &viewModel[T]{}
 		if socket.Connected() {
 			// We come here when the page is already open or in the second Mount with the Websocket
 			if err := socket.Send("reload", "nil"); err != nil {
 				log.Print(err)
 			}
 			var mx sync.Mutex
-			vm.sub = model.Subscribe(rx.OnNext(func(data T) {
+			vm.subscribe(model.Subscribe(rx.OnNext(func(data T) {
 				// The order of the update events needs to be preserved,
 				// as socket.Self seems not to be reentrancy-safe
 				mx.Lock()
 				defer mx.Unlock()
 
-				if err := vm.socket.Self(vm.ctx, "vmChanged", data); err != nil {
+				if err := socket.Self(ctx, "vmChanged", data); err != nil {
 					log.Print(err)
 				}
-			}))
-			// TODO When is ctx.Done?
+			})))
 			go func() {
 				<-ctx.Done()
-				vm.sub.Unsubscribe()
+				vm.unsubscribe()
 			}()
 		}
 	}
@@ -55,9 +67,8 @@ func newViewModel[T any](ctx context.Context, socket live.Socket, model rx.Subsc
 }
 
 func tearDownViewModel[T any](socket live.Socket) error {
-	vm, ok := socket.Assigns().(*viewModel[T])
-	if ok && vm.sub != nil {
-		vm.sub.Unsubscribe()
+	if vm, ok := socket.Assigns().(*viewModel[T]); ok {
+		vm.unsubscribe()
 	}
 	return nil
 }
