@@ -24,7 +24,8 @@ type tap[T any] struct {
 	next               func(T) T
 	err                func(error) error
 	complete           func()
-	mx                 sync.RWMutex
+	mxState            sync.RWMutex
+	mxEvents           sync.Mutex
 }
 
 func (t *tap[T]) Next(value T) {
@@ -39,12 +40,18 @@ func (t *tap[T]) Next(value T) {
 		}
 	}()
 
-	if t.next != nil {
-		value = t.next(value)
-	}
-	if o := t.getObserver(); o != nil {
-		o.Next(value)
-	}
+	func() {
+		t.mxEvents.Lock()
+		defer t.mxEvents.Unlock()
+
+		if t.next != nil {
+			value = t.next(value)
+		}
+		if o := t.getObserver(); o != nil {
+			o.Next(value)
+		}
+	}()
+
 }
 
 func (t *tap[T]) Error(err error) {
@@ -54,12 +61,17 @@ func (t *tap[T]) Error(err error) {
 		}
 	}()
 
-	if t.err != nil {
-		err = t.err(err)
-	}
-	if o := t.getObserver(); o != nil {
-		o.Error(err)
-	}
+	func() {
+		t.mxEvents.Lock()
+		defer t.mxEvents.Unlock()
+
+		if t.err != nil {
+			err = t.err(err)
+		}
+		if o := t.getObserver(); o != nil {
+			o.Error(err)
+		}
+	}()
 }
 
 func (t *tap[T]) Complete() {
@@ -74,30 +86,36 @@ func (t *tap[T]) Complete() {
 		}
 	}()
 
-	if t.complete != nil {
-		t.Complete()
-	}
-	if o := t.getObserver(); o != nil {
-		o.Complete()
-	}
+	func() {
+		t.mxEvents.Lock()
+		defer t.mxEvents.Unlock()
+
+		if t.complete != nil {
+			t.complete()
+		}
+		if o := t.getObserver(); o != nil {
+			o.Complete()
+		}
+	}()
 }
 
 func (t *tap[T]) getObserver() Observer[T] {
-	t.mx.RLock()
-	defer t.mx.RUnlock()
+	t.mxState.RLock()
+	defer t.mxState.RUnlock()
 
 	return t.observer
 }
 
 func (t *tap[T]) Subscribe(o Observer[T]) Subscription {
-	t.mx.Lock()
-	defer t.mx.Unlock()
+	t.mxState.Lock()
+	defer t.mxState.Unlock()
+
 	t.observer = o
 	t.sourceSubscription = t.onSubscribe()
 
 	return NewSubscription(func() {
-		t.mx.RLock()
-		defer t.mx.RUnlock()
+		t.mxState.RLock()
+		defer t.mxState.RUnlock()
 
 		if t.sourceSubscription != nil {
 			t.sourceSubscription.Unsubscribe()

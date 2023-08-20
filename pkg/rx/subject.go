@@ -20,18 +20,19 @@ func NewSubject[T any]() Subject[T] {
 type subject[T any] struct {
 	observable[T]
 	observers []Observer[T]
-	mx        sync.RWMutex
+	mxState   sync.RWMutex
+	mxEvents  sync.Mutex
 }
 
 func (s *subject[T]) Subscribe(o Observer[T]) Subscription {
-	s.mx.Lock()
-	defer s.mx.Unlock()
+	s.mxState.Lock()
+	defer s.mxState.Unlock()
 
 	s.observers = append(s.observers, o)
 
 	return NewSubscription(func() {
-		s.mx.Lock()
-		defer s.mx.Unlock()
+		s.mxState.Lock()
+		defer s.mxState.Unlock()
 
 		for i, v := range s.observers {
 			if o == v {
@@ -43,8 +44,10 @@ func (s *subject[T]) Subscribe(o Observer[T]) Subscription {
 }
 
 func (s *subject[T]) Next(value T) {
-	s.mx.RLock()
-	defer s.mx.RUnlock()
+	s.mxState.RLock()
+	s.mxEvents.Lock()
+	defer s.mxState.RUnlock()
+	defer s.mxEvents.Unlock()
 
 	for _, o := range s.observers {
 		func() {
@@ -59,8 +62,10 @@ func (s *subject[T]) Next(value T) {
 }
 
 func (s *subject[T]) Error(err error) {
-	s.mx.RLock()
-	defer s.mx.RUnlock()
+	s.mxState.RLock()
+	s.mxEvents.Lock()
+	defer s.mxState.RUnlock()
+	defer s.mxEvents.Unlock()
 
 	// no defer recover with sending to o.Error(), as this would build an endless loop
 	for _, o := range s.observers {
@@ -69,8 +74,10 @@ func (s *subject[T]) Error(err error) {
 }
 
 func (s *subject[T]) Complete() {
-	s.mx.RLock()
-	defer s.mx.RUnlock()
+	s.mxState.RLock()
+	s.mxEvents.Lock()
+	defer s.mxState.RUnlock()
+	defer s.mxEvents.Unlock()
 
 	for _, o := range s.observers {
 		func() {

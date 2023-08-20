@@ -33,9 +33,7 @@ func Debounce[T any, U any](s Subscribable[T], trigger Subscribable[U]) Observab
 
 					d.hasLast = false
 				}()
-				if o := d.getObserver(); o != nil {
-					o.Next(d.last)
-				}
+				d.Operator.Next(d.last)
 			}
 
 		}))

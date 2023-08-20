@@ -36,5 +36,5 @@ func (ce *catch[T]) Error(err error) {
 	ce.mx.Lock()
 	defer ce.mx.Unlock()
 
-	ce.errSub = ce.catch(err).Subscribe(ce.getObserver())
+	ce.errSub = ce.catch(err).Subscribe(ce.observer())
 }

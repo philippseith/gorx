@@ -11,7 +11,8 @@ type Operator[T any, U any] struct {
 	onSubscribe        func() Subscription
 	sourceSubscription Subscription
 	outObserver        Observer[U]
-	mx                 sync.RWMutex
+	mxState            sync.RWMutex
+	mxEvents           sync.Mutex
 	t2u                func(T) U
 }
 
@@ -19,7 +20,7 @@ func (op *Operator[T, U]) Next(t T) {
 	defer func() {
 		if r := recover(); r != nil {
 			err := fmt.Errorf("panic in %T.Next(%v): %v.\n%s", op, t, r, string(debug.Stack()))
-			if o := op.getObserver(); o != nil {
+			if o := op.observer(); o != nil {
 				o.Error(err)
 			} else {
 				log.Print(err)
@@ -27,8 +28,13 @@ func (op *Operator[T, U]) Next(t T) {
 		}
 	}()
 
-	if o := op.getObserver(); o != nil {
-		o.Next(op.t2u(t))
+	if o := op.observer(); o != nil {
+		func() {
+			op.mxEvents.Lock()
+			defer op.mxEvents.Unlock()
+
+			o.Next(op.t2u(t))
+		}()
 	}
 }
 
@@ -39,8 +45,13 @@ func (op *Operator[T, U]) Error(err error) {
 		}
 	}()
 
-	if o := op.getObserver(); o != nil {
-		o.Error(err)
+	if o := op.observer(); o != nil {
+		func() {
+			op.mxEvents.Lock()
+			defer op.mxEvents.Unlock()
+
+			o.Error(err)
+		}()
 	}
 }
 
@@ -48,7 +59,7 @@ func (op *Operator[T, U]) Complete() {
 	defer func() {
 		if r := recover(); r != nil {
 			err := fmt.Errorf("panic in %T.Complete(): %v\n%s", op, r, string(debug.Stack()))
-			if o := op.getObserver(); o != nil {
+			if o := op.observer(); o != nil {
 				o.Error(err)
 			} else {
 				log.Print(err)
@@ -56,29 +67,34 @@ func (op *Operator[T, U]) Complete() {
 		}
 	}()
 
-	if o := op.getObserver(); o != nil {
-		o.Complete()
+	if o := op.observer(); o != nil {
+		func() {
+			op.mxEvents.Lock()
+			defer op.mxEvents.Unlock()
+
+			o.Complete()
+		}()
 	}
 }
 
-func (op *Operator[T, U]) getObserver() Observer[U] {
-	op.mx.RLock()
-	defer op.mx.RUnlock()
+func (op *Operator[T, U]) observer() Observer[U] {
+	op.mxState.RLock()
+	defer op.mxState.RUnlock()
 
 	return op.outObserver
 }
 
 func (op *Operator[T, U]) Subscribe(o Observer[U]) Subscription {
-	op.mx.Lock()
-	defer op.mx.Unlock()
+	op.mxState.Lock()
+	defer op.mxState.Unlock()
 	op.outObserver = o
 	if op.onSubscribe != nil {
 		op.sourceSubscription = op.onSubscribe()
 	}
 
 	return NewSubscription(func() {
-		op.mx.RLock()
-		defer op.mx.RUnlock()
+		op.mxState.RLock()
+		defer op.mxState.RUnlock()
 
 		if op.sourceSubscription != nil {
 			op.sourceSubscription.Unsubscribe()

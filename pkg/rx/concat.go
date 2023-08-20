@@ -10,28 +10,38 @@ func Concat[T any](sources ...Subscribable[T]) Observable[T] {
 }
 
 type concat[T any] struct {
-	sub     Subscription
-	sources []Subscribable[T]
-	o       Observer[T]
-	mx      sync.RWMutex
+	sub      Subscription
+	sources  []Subscribable[T]
+	o        Observer[T]
+	mxState  sync.RWMutex
+	mxEvents sync.Mutex
 }
 
 func (c *concat[T]) Next(t T) {
 	if c.observer() != nil {
-		c.observer().Next(t)
+		func() {
+			c.mxEvents.Lock()
+			defer c.mxEvents.Unlock()
+
+			c.observer().Next(t)
+		}()
 	}
 }
 
 func (c *concat[T]) Error(err error) {
 	if c.observer() != nil {
-		c.observer().Error(err)
+		func() {
+			c.mxEvents.Lock()
+			defer c.mxEvents.Unlock()
+			c.observer().Error(err)
+		}()
 	}
 }
 
 func (c *concat[T]) Complete() {
 	if source := func() Subscribable[T] {
-		c.mx.Lock()
-		defer c.mx.Unlock()
+		c.mxState.Lock()
+		defer c.mxState.Unlock()
 
 		// Might be nil when the source completes immediately
 		if c.sub != nil {
@@ -41,14 +51,20 @@ func (c *concat[T]) Complete() {
 		if len(c.sources) > 0 {
 			return c.sources[0]
 		} else if c.o != nil {
-			c.o.Complete()
+			func() {
+				c.mxEvents.Lock()
+				defer c.mxEvents.Unlock()
+
+				c.o.Complete()
+			}()
 		}
 		return nil
 	}(); source != nil {
 		sub := source.Subscribe(c)
 		func() {
-			c.mx.Lock()
-			defer c.mx.Unlock()
+			c.mxState.Lock()
+			defer c.mxState.Unlock()
+
 			c.sub = sub
 		}()
 	}
@@ -56,8 +72,8 @@ func (c *concat[T]) Complete() {
 
 func (c *concat[T]) Subscribe(o Observer[T]) Subscription {
 	if source := func() Subscribable[T] {
-		c.mx.Lock()
-		defer c.mx.Unlock()
+		c.mxState.Lock()
+		defer c.mxState.Unlock()
 
 		c.o = o
 		if len(c.sources) > 0 {
@@ -67,8 +83,9 @@ func (c *concat[T]) Subscribe(o Observer[T]) Subscription {
 	}(); source != nil {
 		sub := source.Subscribe(c)
 		func() {
-			c.mx.Lock()
-			defer c.mx.Unlock()
+			c.mxState.Lock()
+			defer c.mxState.Unlock()
+
 			c.sub = sub
 		}()
 	}
@@ -81,8 +98,8 @@ func (c *concat[T]) Subscribe(o Observer[T]) Subscription {
 }
 
 func (c *concat[T]) observer() Observer[T] {
-	c.mx.RLock()
-	defer c.mx.RUnlock()
+	c.mxState.RLock()
+	defer c.mxState.RUnlock()
 
 	return c.o
 }
