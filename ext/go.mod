@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/jfyne/live v0.15.6
-	github.com/philippseith/gorx v0.0.0-20230816132340-dd78d54482bc
+	github.com/philippseith/gorx v0.0.0-20230821091837-469eb7d31243
 	github.com/stretchr/testify v1.8.4
 )
 
@@ -37,7 +37,7 @@ require (
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	golang.org/x/arch v0.4.0 // indirect
 	golang.org/x/crypto v0.12.0 // indirect
-	golang.org/x/exp v0.0.0-20230725093048-515e97ebf090 // indirect
+	golang.org/x/exp v0.0.0-20230811145659-89c5cff77bcb // indirect
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/text v0.12.0 // indirect
