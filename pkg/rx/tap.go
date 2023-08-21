@@ -107,11 +107,23 @@ func (t *tap[T]) getObserver() Observer[T] {
 }
 
 func (t *tap[T]) Subscribe(o Observer[T]) Subscription {
-	t.mxState.Lock()
-	defer t.mxState.Unlock()
+	// If anything is in the operator chain that directly calls Next
+	// this would deadlock if we simply lock everything with mxState.
+	// So we lock more fine grained
+	sub := func() func() Subscription {
+		t.mxState.Lock()
+		defer t.mxState.Unlock()
 
-	t.observer = o
-	t.sourceSubscription = t.onSubscribe()
+		t.observer = o
+		return t.onSubscribe
+	}()()
+
+	func() {
+		t.mxState.Lock()
+		defer t.mxState.Unlock()
+
+		t.sourceSubscription = sub
+	}()
 
 	return NewSubscription(func() {
 		t.mxState.RLock()
