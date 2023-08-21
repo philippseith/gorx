@@ -46,14 +46,18 @@ func newViewModel[T any](ctx context.Context, socket live.Socket, model rx.Subsc
 			if err := socket.Send("reload", "nil"); err != nil {
 				log.Print(err)
 			}
-			vm.subscribe(model.Subscribe(rx.OnNext(func(data T) {
-				if err := socket.Self(ctx, "vmChanged", data); err != nil {
-					log.Print(err)
-				}
-			})))
+			// if the model sends immediately after subscription, the liveview will not be updated as vm is not yet assigned.
+			// -> Subscribe asynchronously
 			go func() {
-				<-ctx.Done()
-				vm.unsubscribe()
+				vm.subscribe(model.Subscribe(rx.OnNext(func(data T) {
+					if err := socket.Self(ctx, "vmChanged", data); err != nil {
+						log.Print(err)
+					}
+				})))
+				go func() {
+					<-ctx.Done()
+					vm.unsubscribe()
+				}()
 			}()
 		}
 	}
