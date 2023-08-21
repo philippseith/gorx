@@ -44,12 +44,12 @@ func (s *subject[T]) Subscribe(o Observer[T]) Subscription {
 }
 
 func (s *subject[T]) Next(value T) {
-	s.mxState.RLock()
+	oo := s.getObservers()
+
 	s.mxEvents.Lock()
-	defer s.mxState.RUnlock()
 	defer s.mxEvents.Unlock()
 
-	for _, o := range s.observers {
+	for _, o := range oo {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -62,24 +62,24 @@ func (s *subject[T]) Next(value T) {
 }
 
 func (s *subject[T]) Error(err error) {
-	s.mxState.RLock()
+	oo := s.getObservers()
+
 	s.mxEvents.Lock()
-	defer s.mxState.RUnlock()
 	defer s.mxEvents.Unlock()
 
 	// no defer recover with sending to o.Error(), as this would build an endless loop
-	for _, o := range s.observers {
+	for _, o := range oo {
 		o.Error(err)
 	}
 }
 
 func (s *subject[T]) Complete() {
-	s.mxState.RLock()
+	oo := s.getObservers()
+
 	s.mxEvents.Lock()
-	defer s.mxState.RUnlock()
 	defer s.mxEvents.Unlock()
 
-	for _, o := range s.observers {
+	for _, o := range oo {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -89,4 +89,11 @@ func (s *subject[T]) Complete() {
 			o.Complete()
 		}()
 	}
+}
+
+func (s *subject[T]) getObservers() []Observer[T] {
+	s.mxState.RLock()
+	defer s.mxState.RUnlock()
+
+	return s.observers
 }
