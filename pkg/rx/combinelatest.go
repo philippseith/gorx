@@ -2,8 +2,6 @@ package rx
 
 import (
 	"sync"
-
-	"golang.org/x/exp/slices"
 )
 
 // CombineLatest combines multiple Subscribables to create an Observable whose
@@ -26,7 +24,12 @@ func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[a
 						defer c.mx.Unlock()
 
 						c.lasts[idx] = next
-						return slices.Contains(c.lasts, nil)
+						for _, last := range c.lasts {
+							if last == nil {
+								return true
+							}
+						}
+						return false
 					}() {
 						return
 					}
@@ -43,7 +46,12 @@ func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[a
 						defer c.mx.Unlock()
 
 						c.completed[idx] = true
-						return slices.Contains(c.completed, false)
+						for _, completed := range c.completed {
+							if completed == false {
+								return true
+							}
+						}
+						return false
 					}() {
 						return
 					}
