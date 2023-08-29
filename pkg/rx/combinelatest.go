@@ -47,7 +47,7 @@ func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[a
 
 						c.completed[idx] = true
 						for _, completed := range c.completed {
-							if completed == false {
+							if !completed {
 								return true
 							}
 						}
