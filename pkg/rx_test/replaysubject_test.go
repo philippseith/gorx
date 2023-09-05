@@ -73,39 +73,43 @@ func TestReplaySubjectEndlessBuffer(t *testing.T) {
 }
 
 func TestReplaySubjectWindow(t *testing.T) {
-	r := rx.NewReplaySubject[int](rx.Window(5 * time.Millisecond))
+	for i := 0; i < 4; i++ {
+		r := rx.NewReplaySubject[int](rx.Window(50 * time.Millisecond))
 
-	var a1 []int
-	r.Subscribe(rx.OnNext(func(value int) {
-		a1 = append(a1, value)
-	}))
-	r.Next(1)
+		var a1 []int
+		r.Subscribe(rx.OnNext(func(value int) {
+			a1 = append(a1, value)
+		}))
+		r.Next(1)
 
-	assert.Equal(t, []int{1}, a1)
+		assert.Equal(t, []int{1}, a1)
 
-	<-time.After(5 * time.Millisecond)
-	var a2 []int
-	r.Subscribe(rx.OnNext(func(value int) {
-		a2 = append(a2, value)
-	}))
+		<-time.After(50 * time.Millisecond)
+		var a2 []int
+		r.Subscribe(rx.OnNext(func(value int) {
+			a2 = append(a2, value)
+		}))
 
-	assert.Equal(t, []int(nil), a2)
+		assert.Equal(t, []int(nil), a2)
 
-	r.Next(2)
-	<-time.After(1 * time.Millisecond)
-	r.Next(3)
-	<-time.After(1 * time.Millisecond)
+		r.Next(2)
+		<-time.After(10 * time.Millisecond)
+		r.Next(3)
+		<-time.After(10 * time.Millisecond)
 
-	assert.Equal(t, []int{2, 3}, a2)
+		assert.Equal(t, []int{2, 3}, a2)
 
-	<-time.After(3 * time.Millisecond)
+		<-time.After(30 * time.Millisecond)
 
-	var a3 []int
-	r.Subscribe(rx.OnNext(func(value int) {
-		a3 = append(a3, value)
-	}))
+		var a3 []int
+		r.Subscribe(rx.OnNext(func(value int) {
+			a3 = append(a3, value)
+		}))
 
-	assert.Equal(t, []int{3}, a3)
+		<-time.After(10 * time.Millisecond)
+
+		assert.Equal(t, []int{3}, a3)
+	}
 }
 
 func TestReplaySubjectComplete(t *testing.T) {
