@@ -7,11 +7,13 @@ import (
 	"sync"
 )
 
-func Tap[T any](s Subscribable[T], next func(T) T, err func(error) error, complete func()) Observable[T] {
+func Tap[T any](s Subscribable[T], subscribe func(Observer[T]), next func(T) T, err func(error) error, complete, unsubscribe func()) Observable[T] {
 	t := &tap[T]{
-		next:     next,
-		err:      err,
-		complete: complete,
+		subscribe:   subscribe,
+		next:        next,
+		err:         err,
+		complete:    complete,
+		unsubscribe: unsubscribe,
 	}
 	t.onSubscribe = func() Subscription { return s.Subscribe(t) }
 	return ToObservable[T](t)
@@ -21,9 +23,11 @@ type tap[T any] struct {
 	observer           Observer[T]
 	onSubscribe        func() Subscription
 	sourceSubscription Subscription
+	subscribe          func(Observer[T])
 	next               func(T) T
 	err                func(error) error
 	complete           func()
+	unsubscribe        func()
 	mxState            sync.RWMutex
 	mxEvents           sync.Mutex
 }
@@ -110,6 +114,20 @@ func (t *tap[T]) Subscribe(o Observer[T]) Subscription {
 	// If anything is in the operator chain that directly calls Next
 	// this would deadlock if we simply lock everything with mxState.
 	// So we lock more fine grained
+	func() {
+		t.mxState.RLock()
+		defer t.mxState.RUnlock()
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("panic in %T.Subscribe(%v): %v.\n%s", t, o, r, string(debug.Stack()))
+			}
+		}()
+
+		if t.subscribe != nil {
+			t.subscribe(o)
+		}
+	}()
+
 	sub := func() func() Subscription {
 		t.mxState.Lock()
 		defer t.mxState.Unlock()
@@ -128,7 +146,15 @@ func (t *tap[T]) Subscribe(o Observer[T]) Subscription {
 	return NewSubscription(func() {
 		t.mxState.RLock()
 		defer t.mxState.RUnlock()
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("panic in %T.Unsubscribe(): %v.\n%s", t, r, string(debug.Stack()))
+			}
+		}()
 
+		if t.unsubscribe != nil {
+			t.unsubscribe()
+		}
 		if t.sourceSubscription != nil {
 			t.sourceSubscription.Unsubscribe()
 		}

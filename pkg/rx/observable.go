@@ -27,7 +27,7 @@ type Observable[T any] interface {
 	Share() Observable[T]
 	ShareReplay(opts ...ReplayOption) Observable[T]
 	Take(count int) Observable[T]
-	Tap(next func(T) T, err func(error) error, complete func()) Observable[T]
+	Tap(subscribe func(Observer[T]), next func(T) T, err func(error) error, complete, unsubscribe func()) Observable[T]
 	ToAny() Observable[any]
 	ToConnectable() Connectable[T]
 	ToSlice() <-chan []T
@@ -88,8 +88,8 @@ func (o *observable[T]) Take(count int) Observable[T] {
 	return Take[T](o, count)
 }
 
-func (o *observable[T]) Tap(next func(T) T, err func(error) error, complete func()) Observable[T] {
-	return Tap[T](o, next, err, complete)
+func (o *observable[T]) Tap(subscribe func(Observer[T]), next func(T) T, err func(error) error, complete, unsubscribe func()) Observable[T] {
+	return Tap[T](o, subscribe, next, err, complete, unsubscribe)
 }
 
 func (o *observable[T]) ToAny() Observable[any] {
