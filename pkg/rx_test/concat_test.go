@@ -8,9 +8,10 @@ import (
 )
 
 func TestConcat(t *testing.T) {
-	c1 := rx.From[int](1, 2, 3)
-	c2 := rx.From[int](4, 5, 6)
-	cc := c1.Concat(c2)
+	c1 := rx.From[int](1, 2)
+	c2 := rx.From[int](3, 4)
+	c3 := rx.From[int](5, 6)
+	cc := c1.Concat(c2, c3)
 
 	var ii []int
 	cc.Subscribe(rx.OnNext[int](func(i int) {
