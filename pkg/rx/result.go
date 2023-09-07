@@ -1,7 +1,7 @@
 package rx
 
 type Result[T any] struct {
-	Ok T
+	Ok  T
 	Err error
 }
 
