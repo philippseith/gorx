@@ -18,18 +18,18 @@ func FromChan[T any](ch <-chan T) Observable[T] {
 	return ToObservable[T](fc)
 }
 
-// FromItemChan creates an Observable[T] from a chan Item[T]. The channel will be read at
+// FromResultChan creates an Observable[T] from a chan Item[T]. The channel will be read at
 // once. All values sent before the Observable is subscribed to, will be ignored.
-// FromItemChan should only be subscribed once simultaneously.
-func FromItemChan[T any](ch <-chan Item[T]) Observable[T] {
+// FromResultChan should only be subscribed once simultaneously.
+func FromResultChan[T any](ch <-chan Result[T]) Observable[T] {
 	fc := &Operator[T, T]{t2u: func(t T) T { return t }}
 	fc.prepareSubscribe(func() Subscription {
 		go func() {
 			for item := range ch {
-				if item.E != nil {
-					fc.Error(item.E)
+				if item.Err != nil {
+					fc.Error(item.Err)
 				} else {
-					fc.Next(item.V)
+					fc.Next(item.Ok)
 				}
 			}
 			fc.Complete()
@@ -45,28 +45,23 @@ func FromItemChan[T any](ch <-chan Item[T]) Observable[T] {
 // with cold observables. You need to wrap the cold observable with
 // ToConnectable and set up a receiving goroutine for the channel before you
 // call Connectable.Connect
-func ToChan[T any](s Subscribable[T]) (<-chan Item[T], Subscription) {
+func ToChan[T any](s Subscribable[T]) (<-chan Result[T], Subscription) {
 	tc := &toChan[T]{
-		ch: make(chan Item[T], 1),
+		ch: make(chan Result[T], 1),
 	}
 	return tc.ch, s.Subscribe(tc)
 }
 
-type Item[T any] struct {
-	V T
-	E error
-}
-
 type toChan[T any] struct {
-	ch chan Item[T]
+	ch chan Result[T]
 }
 
 func (tc *toChan[T]) Next(value T) {
-	tc.ch <- Item[T]{V: value}
+	tc.ch <- Result[T]{Ok: value}
 }
 
 func (tc *toChan[T]) Error(err error) {
-	tc.ch <- Item[T]{E: err}
+	tc.ch <- Result[T]{Err: err}
 	close(tc.ch)
 }
 

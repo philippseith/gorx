@@ -15,7 +15,7 @@ func TestToChan(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		for value := range ch {
-			sl = append(sl, value.V)
+			sl = append(sl, value.Ok)
 		}
 		close(done)
 	}()
