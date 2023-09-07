@@ -7,6 +7,7 @@ import (
 
 	"github.com/philippseith/gorx/pkg/rx"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestGo(t *testing.T) {
@@ -32,4 +33,19 @@ func TestGo(t *testing.T) {
 
 	assert.Equal(t, "", z.Ok)
 	assert.Equal(t, ctx.Err(), z.Err)
+}
+
+func TestErrGroup(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	g := errgroup.Group{}
+	g.Go(func() error {
+		return nil
+	})
+	g.Go(func() error {
+		<-ctx.Done()
+		return ctx.Err()
+	})
+	assert.Error(t, g.Wait())
 }

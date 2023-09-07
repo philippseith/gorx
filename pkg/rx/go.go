@@ -1,6 +1,8 @@
 package rx
 
-import "context"
+import (
+	"context"
+)
 
 func Go[T any](ctx context.Context, f func() (T, error)) <-chan Result[T] {
 	ch := make(chan Result[T], 1)
