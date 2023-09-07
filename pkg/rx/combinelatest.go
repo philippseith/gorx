@@ -18,45 +18,11 @@ func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[a
 			idx := i
 			c.subs[idx] = source.Subscribe(NewObserver[any](
 				// Next
-				func(next any) {
-					if func() bool {
-						c.mx.Lock()
-						defer c.mx.Unlock()
-
-						c.lasts[idx] = next
-						for _, last := range c.lasts {
-							if last == nil {
-								return true
-							}
-						}
-						return false
-					}() {
-						return
-					}
-					lasts := make([]any, len(c.lasts))
-					copy(lasts, c.lasts)
-					c.Operator.Next(combine(lasts...))
-				},
+				func(next any) { c.next(combine, idx, next) },
 				// Error
 				c.Operator.Error,
 				// Complete
-				func() {
-					if func() bool {
-						c.mx.Lock()
-						defer c.mx.Unlock()
-
-						c.completed[idx] = true
-						for _, completed := range c.completed {
-							if !completed {
-								return true
-							}
-						}
-						return false
-					}() {
-						return
-					}
-					c.Operator.Complete()
-				}))
+				func() { c.complete(idx) }))
 		}
 		return NewSubscription(func() {
 			for _, sub := range c.subs {
@@ -74,4 +40,42 @@ type combineLatest[T any] struct {
 	completed []bool
 
 	mx sync.RWMutex
+}
+
+func (c *combineLatest[T]) next(combine func(next ...any) T, idx int, next any) {
+	if func() bool {
+		c.mx.Lock()
+		defer c.mx.Unlock()
+
+		c.lasts[idx] = next
+		for _, last := range c.lasts {
+			if last == nil {
+				return true
+			}
+		}
+		return false
+	}() {
+		return
+	}
+	lasts := make([]any, len(c.lasts))
+	copy(lasts, c.lasts)
+	c.Operator.Next(combine(lasts...))
+}
+
+func (c *combineLatest[T]) complete(idx int) {
+	if func() bool {
+		c.mx.Lock()
+		defer c.mx.Unlock()
+
+		c.completed[idx] = true
+		for _, completed := range c.completed {
+			if !completed {
+				return true
+			}
+		}
+		return false
+	}() {
+		return
+	}
+	c.Operator.Complete()
 }
