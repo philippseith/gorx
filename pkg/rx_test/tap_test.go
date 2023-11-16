@@ -11,10 +11,10 @@ import (
 func TestTapRef(t *testing.T) {
 	x := 0
 	s := rx.NewSubject[*int]()
-	ta := s.Tap(nil, func(i *int) *int {
+	ta := s.Log("before").Tap(nil, func(i *int) *int {
 		*i = 1
 		return i
-	}, nil, nil, nil)
+	}, nil, nil, nil).Log("after")
 
 	var y int
 	ta.Subscribe(rx.OnNext(func(i *int) {
@@ -27,9 +27,9 @@ func TestTapRef(t *testing.T) {
 
 func TestTap(t *testing.T) {
 	s := rx.NewSubject[int]()
-	ta := s.Tap(nil, func(i int) int {
+	ta := s.Log("before").Tap(nil, func(i int) int {
 		return i + 1
-	}, nil, nil, nil)
+	}, nil, nil, nil).Log("after")
 
 	var y int
 	ta.Subscribe(rx.OnNext(func(i int) {

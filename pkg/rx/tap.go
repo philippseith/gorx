@@ -19,6 +19,22 @@ func Tap[T any](s Subscribable[T], subscribe func(Observer[T]), next func(T) T, 
 	return ToObservable[T](t)
 }
 
+func Log[T any](s Subscribable[T], id string) Observable[T] {
+	return Tap(s, func(o Observer[T]) {
+		log.Printf("Subscribe %s: %v", id, o)
+	}, func(t T) T {
+		log.Printf("Next %s: %v", id, t)
+		return t
+	}, func(err error) error {
+		log.Printf("Error %s: %v", id, err)
+		return err
+	}, func() {
+		log.Printf("Complete %s", id)
+	}, func() {
+		log.Printf("Unsubscribe %s", id)
+	})
+}
+
 type tap[T any] struct {
 	observer           Observer[T]
 	onSubscribe        func() Subscription

@@ -87,7 +87,7 @@ func (op *Operator[T, U]) observer() Observer[U] {
 func (op *Operator[T, U]) Subscribe(o Observer[U]) Subscription {
 	// If anything is in the operator chain that directly calls Next
 	// this would deadlock if we simply lock everything with mxState.
-	// So we lock more fine grained
+	// So we lock more fine-grained
 	if onSubscribe := func() func() Subscription {
 		op.mxState.Lock()
 		defer op.mxState.Unlock()

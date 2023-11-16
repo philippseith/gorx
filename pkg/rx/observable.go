@@ -24,6 +24,8 @@ type Observable[T any] interface {
 	Concat(...Subscribable[T]) Observable[T]
 	DebounceTime(duration time.Duration) Observable[T]
 	DistinctUntilChanged(equal func(T, T) bool) Observable[T]
+	Log(id string) Observable[T]
+	Merge(sources ...Subscribable[T]) Observable[T]
 	Share() Observable[T]
 	ShareReplay(opts ...ReplayOption) Observable[T]
 	Take(count int) Observable[T]
@@ -74,6 +76,15 @@ func (o *observable[T]) DebounceTime(duration time.Duration) Observable[T] {
 
 func (o *observable[T]) DistinctUntilChanged(equal func(T, T) bool) Observable[T] {
 	return DistinctUntilChanged[T](o, equal)
+}
+
+func (o *observable[T]) Log(id string) Observable[T] {
+	return Log[T](o, id)
+}
+
+func (o *observable[T]) Merge(sources ...Subscribable[T]) Observable[T] {
+	sources = append([]Subscribable[T]{o}, sources...)
+	return Merge[T](sources...)
 }
 
 func (o *observable[T]) Share() Observable[T] {
