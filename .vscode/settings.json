@@ -1,0 +1,6 @@
+{
+  "go.testFlags": [
+    "-coverpkg=github.com/philippseith/gorx/pkg/rx",
+    "-covermode=atomic"
+  ]
+}
