@@ -7,6 +7,8 @@ import (
 	"sync"
 )
 
+// Tap allows to tap into all methods of the Subscriber/Subscribable interface.
+// Where values are passed to the subscriber, Tap can alter them.
 func Tap[T any](s Subscribable[T], subscribe func(Observer[T]), next func(T) T, err func(error) error, complete, unsubscribe func()) Observable[T] {
 	t := &tap[T]{
 		subscribe:   subscribe,
@@ -19,6 +21,7 @@ func Tap[T any](s Subscribable[T], subscribe func(Observer[T]), next func(T) T, 
 	return ToObservable[T](t)
 }
 
+// Log allows to log all method invocations of the Subscriber/Subscribable interface.
 func Log[T any](s Subscribable[T], id string) Observable[T] {
 	return Tap(s, func(o Observer[T]) {
 		log.Printf("Subscribe %s: %v", id, o)
