@@ -84,6 +84,8 @@ func (op *Operator[T, U]) observer() Observer[U] {
 	return op.outObserver
 }
 
+// Subscribe connects an Observer.
+// The Operator does not call Subscribe of its source until its own Subscribe method is called.
 func (op *Operator[T, U]) Subscribe(o Observer[U]) Subscription {
 	// If anything is in the operator chain that directly calls Next
 	// this would deadlock if we simply lock everything with mxState.
@@ -118,6 +120,8 @@ func (op *Operator[T, U]) Subscribe(o Observer[U]) Subscription {
 	})
 }
 
+// prepareSubscribe sets the onSubscribe method which is called in Subscribe.
+// Operators should subscribe their source only in the onSubscribe method.
 func (op *Operator[T, U]) prepareSubscribe(onSubscribe func() Subscription) {
 	op.onSubscribe = onSubscribe
 }
