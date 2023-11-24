@@ -18,20 +18,24 @@ type Subscribable[T any] interface {
 // Observable attaches all operators with only on generic parameter on a Subscribable
 type Observable[T any] interface {
 	Subscribable[T]
+	ObservableExtension[Observable[T], Subscribable[T], T]
 
-	AddTearDownLogic(tld func()) Observable[T]
-	Catch(catch func(error) Subscribable[T]) Observable[T]
-	Concat(...Subscribable[T]) Observable[T]
-	DebounceTime(duration time.Duration) Observable[T]
-	DistinctUntilChanged(equal func(T, T) bool) Observable[T]
-	Log(id string) Observable[T]
-	Merge(sources ...Subscribable[T]) Observable[T]
-	Share() Observable[T]
-	ShareReplay(opts ...ReplayOption) Observable[T]
-	Take(count int) Observable[T]
-	Tap(subscribe func(Observer[T]), next func(T) T, err func(error) error, complete, unsubscribe func()) Observable[T]
 	ToAny() Observable[any]
 	ToConnectable() Connectable[T]
+}
+
+type ObservableExtension[Extended Subscribable[T], Extendable Subscribable[T], T any] interface {
+	AddTearDownLogic(tld func()) Extended
+	Catch(catch func(error) Extendable) Extended
+	Concat(...Extendable) Extended
+	DebounceTime(duration time.Duration) Extended
+	DistinctUntilChanged(equal func(T, T) bool) Extended
+	Log(id string) Extended
+	Merge(sources ...Extendable) Extended
+	Share() Extended
+	ShareReplay(opts ...ReplayOption) Extended
+	Take(count int) Extended
+	Tap(subscribe func(Observer[T]), next func(T) T, err func(error) error, complete, unsubscribe func()) Extended
 	ToSlice() <-chan []T
 }
 
