@@ -1,7 +1,6 @@
 package rxpd
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/philippseith/gorx/pkg/rx"
@@ -146,42 +145,7 @@ func (p *property[T]) Tap(subscribe func(rx.Observer[T]), next func(T) T, err fu
 }
 
 func (p *property[T]) ToAny() Property[any] {
-	var read func() <-chan rx.Result[any]
-	if p.read != nil {
-		read = func() <-chan rx.Result[any] {
-			ch := make(chan rx.Result[any], 1)
-			if rT, ok := <-p.read(); ok {
-				ch <- rx.Result[any]{Ok: rT.Ok, Err: rT.Err}
-			}
-			close(ch)
-			return ch
-		}
-	}
-	var write func(value any) <-chan error
-	if p.write != nil {
-		write = func(value any) <-chan error {
-			ch := make(chan error, 1)
-			if valueT, ok := value.(T); ok {
-				if err, ok := <-p.write(valueT); ok {
-					ch <- err
-				}
-			} else {
-				ch <- fmt.Errorf("can not convert %v to %T", value, valueT)
-			}
-			close(ch)
-			return ch
-		}
-	}
-
-	return &property[any]{
-		Subscribable: rx.ToAny[T](p.Subscribable),
-		interval:     p.interval,
-		propertyOption: propertyOption[any]{
-			setInterval: p.setInterval,
-			read:        read,
-			write:       write,
-		},
-	}
+	return ToAny[T](p)
 }
 
 func (p *property[T]) ToSlice() <-chan []T {
