@@ -21,6 +21,7 @@ type Property[T any] interface {
 	rx.ObservableExtension[Property[T], Subscribable[T], T]
 
 	ToAny() Property[any]
+	With(options ...PropertyOption[T]) Property[T]
 }
 
 // ToProperty extends a Subscribable to a Property
@@ -56,6 +57,13 @@ func WithWrite[T any](write func(T) <-chan error) func(*propertyOption[T]) {
 	return func(po *propertyOption[T]) {
 		po.write = write
 	}
+}
+
+func (p *property[T]) With(options ...PropertyOption[T]) Property[T] {
+	for _, option := range options {
+		option(&p.propertyOption)
+	}
+	return p
 }
 
 type property[T any] struct {
@@ -100,9 +108,11 @@ func (p *property[T]) Catch(catch func(error) Subscribable[T]) Property[T] {
 	return q
 }
 
+// Concat creates an output Property which sequentially emits all values from
+// the first given Subscribable and then moves on to the next.
+// Interval, SetInterval, Read, Write of the output Property do not invoke any method of the sources.
+// If they should have an effect, they have to be set with PropertyOptions in the ToProperty or With methods.
 func (p *property[T]) Concat(sources ...Subscribable[T]) Property[T] {
-	// TODO the returned Property has undefined Read/Write behavior
-	// TODO Which of the sources should be read/written -> The one that will send next, but how to find out which is this?
 	rxSources := make([]rx.Subscribable[T], 0, len(sources))
 	for _, source := range sources {
 		rxSources = append(rxSources, source)
@@ -122,10 +132,19 @@ func (p *property[T]) Log(id string) Property[T] {
 	return p.toProperty(rx.Log[T](p, id))
 }
 
+// Merge subscribes to each given input Subscribable (as arguments), and simply
+// forwards (without doing any transformation) all the values from all the input
+// Subscribables to the output Property. The output Property only completes
+// once all input Subscribables have completed. Any error delivered by an input
+// Subscribable will be immediately emitted on the output Property.
+// Interval, SetInterval, Read, Write of the output Property do not invoke any method of the sources.
+// If they should have an effect, they have to be set with PropertyOptions in the ToProperty or With methods.
 func (p *property[T]) Merge(sources ...Subscribable[T]) Property[T] {
-	// TODO the returned Property has undefined Read/Write behavior
-	// TODO Which of the sources should be read/written?
-	panic("implement me")
+	rxSources := make([]rx.Subscribable[T], 0, len(sources))
+	for _, source := range sources {
+		rxSources = append(rxSources, source)
+	}
+	return ToProperty[T](rx.Merge[T](rxSources...))
 }
 
 func (p *property[T]) Share() Property[T] {
