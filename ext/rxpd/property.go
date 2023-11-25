@@ -81,10 +81,24 @@ func (p *property[T]) AddTearDownLogic(logic func()) Property[T] {
 }
 
 func (p *property[T]) Catch(catch func(error) Subscribable[T]) Property[T] {
-	// TODO the returned Property has undefined Read/Write behavior
-	return ToProperty[T](rx.Catch[T](p, func(err error) rx.Subscribable[T] {
-		return catch(err)
-	}))
+	q := &property[T]{
+		interval: p.interval,
+		propertyOption: propertyOption[T]{
+			setInterval: p.setInterval,
+			read:        p.read,
+			write:       p.write,
+		},
+	}
+	q.Subscribable = rx.Catch[T](p, func(err error) rx.Subscribable[T] {
+		c := catch(err)
+		q.interval = c.Interval()
+		q.setInterval = c.SetInterval
+		q.read = c.Read
+		q.write = c.Write
+
+		return c
+	})
+	return q
 }
 
 func (p *property[T]) Concat(sources ...Subscribable[T]) Property[T] {
@@ -110,7 +124,8 @@ func (p *property[T]) Log(id string) Property[T] {
 }
 
 func (p *property[T]) Merge(sources ...Subscribable[T]) Property[T] {
-	//TODO implement me
+	// TODO the returned Property has undefined Read/Write behavior
+	// TODO Which of the sources should be read/written?
 	panic("implement me")
 }
 
