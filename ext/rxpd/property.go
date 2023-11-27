@@ -184,7 +184,7 @@ func (p *property[T]) Interval() time.Duration {
 
 func (p *property[T]) Read() <-chan rx.Result[T] {
 	if p.read != nil {
-		return p.Read()
+		return p.read()
 	}
 	ch := make(chan rx.Result[T])
 	close(ch)
