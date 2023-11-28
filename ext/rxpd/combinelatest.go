@@ -40,7 +40,7 @@ func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[a
 					}
 					next := make([]any, 0, len(sources))
 					for _, result := range results {
-						next = append(next, result)
+						next = append(next, result.Ok)
 					}
 					ch <- rx.Result[T]{Ok: combine(next...)}
 					close(ch)
