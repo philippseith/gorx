@@ -21,7 +21,7 @@ func NewObserver[T any](next func(T), err func(error), complete func()) Observer
 }
 
 func OnNext[T any](next func(T)) Observer[T] {
-	return &observer[T]{next: next}
+	return &observer[T]{next: next, err: func(err error) { log.Print(err) }}
 }
 
 type observer[T any] struct {
