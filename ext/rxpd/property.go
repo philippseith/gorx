@@ -12,7 +12,7 @@ type Subscribable[T any] interface {
 	SetInterval(time.Duration)
 	Interval() time.Duration
 
-	Read() <-chan rx.Result[T]
+	Read() rx.ResultChan[T]
 	Write(T) <-chan error
 }
 
@@ -37,7 +37,7 @@ type PropertyOption[T any] func(*propertyOption[T])
 
 type propertyOption[T any] struct {
 	setInterval func(time.Duration)
-	read        func() <-chan rx.Result[T]
+	read        func() rx.ResultChan[T]
 	write       func(T) <-chan error
 }
 
@@ -47,7 +47,7 @@ func WithSetInterval[T any](setInterval func(time.Duration)) func(*propertyOptio
 	}
 }
 
-func WithRead[T any](read func() <-chan rx.Result[T]) func(*propertyOption[T]) {
+func WithRead[T any](read func() rx.ResultChan[T]) func(*propertyOption[T]) {
 	return func(po *propertyOption[T]) {
 		po.read = read
 	}
@@ -105,6 +105,7 @@ func (p *property[T]) Catch(catch func(error) Subscribable[T]) Property[T] {
 
 		return c
 	})
+
 	return q
 }
 
@@ -182,7 +183,7 @@ func (p *property[T]) Interval() time.Duration {
 	return p.interval
 }
 
-func (p *property[T]) Read() <-chan rx.Result[T] {
+func (p *property[T]) Read() rx.ResultChan[T] {
 	if p.read != nil {
 		return p.read()
 	}

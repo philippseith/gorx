@@ -11,7 +11,7 @@ func Map[T any, U any](s Subscribable[T], mapToU func(T) U, mapToT func(U) (T, e
 		Subscribable: rx.Map[T, U](s, mapToU),
 		propertyOption: propertyOption[U]{
 			setInterval: s.SetInterval,
-			read: func() <-chan rx.Result[U] {
+			read: func() rx.ResultChan[U] {
 				ch := make(chan rx.Result[U], 1)
 				go func() {
 					result := <-s.Read()

@@ -16,7 +16,7 @@ func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[a
 		Subscribable: rx.CombineLatest[T](combine, rxSources...),
 		propertyOption: propertyOption[T]{
 			setInterval: nil,
-			read: func() <-chan rx.Result[T] {
+			read: func() rx.ResultChan[T] {
 				ch := make(chan rx.Result[T])
 				go func() {
 					var wg sync.WaitGroup
