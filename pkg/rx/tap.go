@@ -24,7 +24,7 @@ func Tap[T any](s Subscribable[T], subscribe func(Observer[T]), next func(T) T, 
 // Log allows to log all method invocations of the Subscriber/Subscribable interface.
 func Log[T any](s Subscribable[T], id string) Observable[T] {
 	return Tap(s, func(o Observer[T]) {
-		log.Printf("Subscribe %s: %+v", id, o)
+		log.Printf("Subscribe %s: %T", id, o)
 	}, func(t T) T {
 		log.Printf("Next %s: %+v", id, t)
 		return t
@@ -55,11 +55,7 @@ func (t *tap[T]) Next(value T) {
 	defer func() {
 		if r := recover(); r != nil {
 			err := fmt.Errorf("panic in %T.Next(%v): %v.\n%s", t, value, r, string(debug.Stack()))
-			if o := t.getObserver(); o != nil {
-				o.Error(err)
-			} else {
-				log.Print(err)
-			}
+			t.Error(err)
 		}
 	}()
 
@@ -101,11 +97,7 @@ func (t *tap[T]) Complete() {
 	defer func() {
 		if r := recover(); r != nil {
 			err := fmt.Errorf("panic in %T.Complete(): %v\n%s", t, r, string(debug.Stack()))
-			if o := t.getObserver(); o != nil {
-				o.Error(err)
-			} else {
-				log.Print(err)
-			}
+			t.Error(err)
 		}
 	}()
 
