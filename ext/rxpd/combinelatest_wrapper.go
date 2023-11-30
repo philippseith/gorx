@@ -68,3 +68,17 @@ func CombineLatest9[S1 any, S2 any, S3 any, S4 any, S5 any, S6 any, S7 any, S8 a
 			next[6].(S7), next[7].(S8), next[8].(S9))
 	}, ToAny(s1), ToAny(s2), ToAny(s3), ToAny(s4), ToAny(s5), ToAny(s6), ToAny(s7), ToAny(s8), ToAny(s9))
 }
+
+func CombineLatestToSlice[T any](sst []Subscribable[T]) Property[[]T] {
+	ssa := make([]Subscribable[any], 0, len(sst))
+	for _, st := range sst {
+		ssa = append(ssa, ToAny(st))
+	}
+	return CombineLatest[[]T](func(next ...any) []T {
+		result := make([]T, 0, len(next))
+		for _, n := range next {
+			result = append(result, n.(T))
+		}
+		return result
+	}, ssa...)
+}
