@@ -1,6 +1,7 @@
 package rx_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,7 +11,7 @@ import (
 
 func TestFromChan(t *testing.T) {
 	ch := make(chan int, 1)
-	fc := rx.FromChan[int](ch)
+	fc := rx.FromChan[int](context.Background(), ch)
 
 	var sl []int
 	done := make(chan struct{}, 1)
