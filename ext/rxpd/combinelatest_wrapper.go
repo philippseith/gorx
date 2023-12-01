@@ -1,5 +1,7 @@
 package rxpd
 
+import "time"
+
 func CombineLatest2[S1 any, S2 any, T any](combine func(S1, S2) T,
 	s1 Subscribable[S1], s2 Subscribable[S2]) Property[T] {
 	return CombineLatest[T](func(next ...any) T {
@@ -80,5 +82,9 @@ func CombineLatestToSlice[T any](sst []Subscribable[T]) Property[[]T] {
 			result = append(result, n.(T))
 		}
 		return result
-	}, ssa...)
+	}, ssa...).With(WithSetInterval[[]T](func(interval time.Duration) {
+		for _, st := range sst {
+			st.SetInterval(interval)
+		}
+	}))
 }
