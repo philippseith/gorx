@@ -1,10 +1,13 @@
 package rx
 
-import "sync"
+import (
+	"context"
+	"sync"
+)
 
 // Catch catches errors on the Subscribable to be handled by returning a new
 // Subscribable
-func Catch[T any](s Subscribable[T], catchError func(error) Subscribable[T]) Observable[T] {
+func Catch[T any](s Subscribable[T], catchError func(context.Context, error) Subscribable[T]) Observable[T] {
 	ce := &catch[T]{
 		Operator: Operator[T, T]{t2u: func(t T) T { return t }},
 		catch:    catchError,
@@ -26,15 +29,15 @@ func Catch[T any](s Subscribable[T], catchError func(error) Subscribable[T]) Obs
 
 type catch[T any] struct {
 	Operator[T, T]
-	catch  func(error) Subscribable[T]
+	catch  func(context.Context, error) Subscribable[T]
 	errSub Subscription
 
 	mx sync.RWMutex
 }
 
-func (ce *catch[T]) Error(err error) {
+func (ce *catch[T]) Error(ctx context.Context, err error) {
 	ce.mx.Lock()
 	defer ce.mx.Unlock()
 
-	ce.errSub = ce.catch(err).Subscribe(ce.observer())
+	ce.errSub = ce.catch(ctx, err).Subscribe(ce.observer())
 }

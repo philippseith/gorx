@@ -1,6 +1,7 @@
 package rx
 
 import (
+	"context"
 	"time"
 )
 
@@ -26,7 +27,7 @@ type Observable[T any] interface {
 
 type ObservableExtension[Extended Subscribable[T], Extendable Subscribable[T], T any] interface {
 	AddTearDownLogic(tld func()) Extended
-	Catch(catch func(error) Extendable) Extended
+	Catch(catch func(context.Context, error) Extendable) Extended
 	Concat(...Extendable) Extended
 	DebounceTime(duration time.Duration) Extended
 	DistinctUntilChanged(equal func(T, T) bool) Extended
@@ -35,7 +36,11 @@ type ObservableExtension[Extended Subscribable[T], Extendable Subscribable[T], T
 	Share() Extended
 	ShareReplay(opts ...ReplayOption) Extended
 	Take(count int) Extended
-	Tap(subscribe func(Observer[T]), next func(T) T, err func(error) error, complete, unsubscribe func()) Extended
+	Tap(subscribe func(Observer[T]),
+		next func(context.Context, T) (context.Context, T),
+		err func(context.Context, error) (context.Context, error),
+		complete func(context.Context) context.Context,
+		unsubscribe func()) Extended
 	ToSlice() <-chan []T
 }
 
@@ -65,7 +70,7 @@ func (o *observable[T]) AddTearDownLogic(tld func()) Observable[T] {
 	return o
 }
 
-func (o *observable[T]) Catch(catch func(error) Subscribable[T]) Observable[T] {
+func (o *observable[T]) Catch(catch func(context.Context, error) Subscribable[T]) Observable[T] {
 	return Catch[T](o, catch)
 }
 
@@ -103,7 +108,12 @@ func (o *observable[T]) Take(count int) Observable[T] {
 	return Take[T](o, count)
 }
 
-func (o *observable[T]) Tap(subscribe func(Observer[T]), next func(T) T, err func(error) error, complete, unsubscribe func()) Observable[T] {
+func (o *observable[T]) Tap(
+	subscribe func(Observer[T]),
+	next func(context.Context, T) (context.Context, T),
+	err func(context.Context, error) (context.Context, error),
+	complete func(context.Context) context.Context,
+	unsubscribe func()) Observable[T] {
 	return Tap[T](o, subscribe, next, err, complete, unsubscribe)
 }
 

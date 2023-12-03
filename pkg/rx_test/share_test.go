@@ -1,6 +1,7 @@
 package rx_test
 
 import (
+	"context"
 	"sync"
 	"testing"
 
@@ -11,7 +12,7 @@ import (
 
 func TestShare(t *testing.T) {
 	ch := make(chan int, 1)
-	sh := rx.Share[int](rx.FromChan[int](ch))
+	sh := rx.Share[int](rx.FromChan[int](context.Background(), ch))
 
 	var wg sync.WaitGroup
 	wg.Add(2)
