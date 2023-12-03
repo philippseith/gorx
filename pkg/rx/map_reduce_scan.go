@@ -1,5 +1,7 @@
 package rx
 
+import "context"
+
 func Map[T any, U any](s Subscribable[T], mapper func(T) U) Observable[U] {
 	m := &Operator[T, U]{t2u: mapper}
 	m.prepareSubscribe(func() Subscription { return s.Subscribe(m) })
@@ -10,11 +12,11 @@ func Reduce[T any, U any](s Subscribable[T], acc func(U, T) U, seed U) Observabl
 	result := &seed
 	r := &Operator[U, U]{t2u: func(u U) U { return u }}
 	r.prepareSubscribe(func() Subscription {
-		return s.Subscribe(NewObserver[T](func(value T) {
+		return s.Subscribe(NewObserverWithContext[T](func(ctx context.Context, value T) {
 			*result = acc(*result, value)
-		}, r.Error, func() {
-			r.Next(*result)
-			r.Complete()
+		}, r.Error, func(ctx context.Context) {
+			r.Next(ctx, *result)
+			r.Complete(ctx)
 		}))
 	})
 	return ToObservable[U](r)

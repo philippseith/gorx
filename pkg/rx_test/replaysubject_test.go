@@ -1,6 +1,7 @@
 package rx_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -13,9 +14,9 @@ import (
 func TestReplaySubjectBuffer(t *testing.T) {
 	r := rx.NewReplaySubject[int](rx.MaxBufferSize(2))
 
-	r.Next(1)
-	r.Next(2)
-	r.Next(3)
+	r.Next(context.Background(), 1)
+	r.Next(context.Background(), 2)
+	r.Next(context.Background(), 3)
 
 	var a1 []int
 	r.Subscribe(rx.OnNext(func(value int) {
@@ -31,7 +32,7 @@ func TestReplaySubjectBuffer(t *testing.T) {
 
 	assert.Equal(t, []int{2, 3}, a2)
 
-	r.Next(4)
+	r.Next(context.Background(), 4)
 
 	var a3 []int
 	r.Subscribe(rx.OnNext(func(value int) {
@@ -44,7 +45,7 @@ func TestReplaySubjectBuffer(t *testing.T) {
 func TestReplaySubjectEndlessBuffer(t *testing.T) {
 	r := rx.NewReplaySubject[int]()
 
-	r.Next(1)
+	r.Next(context.Background(), 1)
 
 	var a1 []int
 	r.Subscribe(rx.OnNext(func(value int) {
@@ -53,7 +54,7 @@ func TestReplaySubjectEndlessBuffer(t *testing.T) {
 
 	assert.Equal(t, []int{1}, a1)
 
-	r.Next(2)
+	r.Next(context.Background(), 2)
 
 	var a2 []int
 	r.Subscribe(rx.OnNext(func(value int) {
@@ -62,7 +63,7 @@ func TestReplaySubjectEndlessBuffer(t *testing.T) {
 
 	assert.Equal(t, []int{1, 2}, a2)
 
-	r.Next(3)
+	r.Next(context.Background(), 3)
 
 	var a3 []int
 	r.Subscribe(rx.OnNext(func(value int) {
@@ -80,7 +81,7 @@ func TestReplaySubjectWindow(t *testing.T) {
 		r.Subscribe(rx.OnNext(func(value int) {
 			a1 = append(a1, value)
 		}))
-		r.Next(1)
+		r.Next(context.Background(), 1)
 
 		assert.Equal(t, []int{1}, a1)
 
@@ -92,9 +93,9 @@ func TestReplaySubjectWindow(t *testing.T) {
 
 		assert.Equal(t, []int(nil), a2)
 
-		r.Next(2)
+		r.Next(context.Background(), 2)
 		<-time.After(10 * time.Millisecond)
-		r.Next(3)
+		r.Next(context.Background(), 3)
 		<-time.After(10 * time.Millisecond)
 
 		assert.Equal(t, []int{2, 3}, a2)
@@ -115,10 +116,10 @@ func TestReplaySubjectWindow(t *testing.T) {
 func TestReplaySubjectComplete(t *testing.T) {
 	r := rx.NewReplaySubject[int](rx.MaxBufferSize(2))
 
-	r.Next(1)
-	r.Next(2)
-	r.Next(3)
-	r.Complete()
+	r.Next(context.Background(), 1)
+	r.Next(context.Background(), 2)
+	r.Next(context.Background(), 3)
+	r.Complete(context.Background())
 
 	var a1 []int
 	var c1 bool
@@ -146,11 +147,11 @@ func TestReplaySubjectComplete(t *testing.T) {
 func TestReplaySubjectError(t *testing.T) {
 	r := rx.NewReplaySubject[int](rx.MaxBufferSize(2))
 
-	r.Next(1)
-	r.Next(2)
-	r.Next(3)
+	r.Next(context.Background(), 1)
+	r.Next(context.Background(), 2)
+	r.Next(context.Background(), 3)
 	err := errors.New("shit happens")
-	r.Error(err)
+	r.Error(context.Background(), err)
 
 	var a1 []int
 	var err1 error

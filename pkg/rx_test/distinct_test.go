@@ -1,8 +1,10 @@
 package rx_test
 
 import (
-	"github.com/stretchr/testify/assert"
+	"context"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/philippseith/gorx/pkg/rx"
 )
@@ -15,7 +17,7 @@ func TestDistinctUntilChanged(t *testing.T) {
 			actual = append(actual, value)
 		}, nil, nil))
 	for _, i := range []int{1, 1, 2, 2, 3, 3} {
-		s.Next(i)
+		s.Next(context.Background(), i)
 	}
 	assert.Equal(t, []int{1, 2, 3}, actual)
 }
@@ -28,7 +30,7 @@ func TestDistinct(t *testing.T) {
 			actual = append(actual, value)
 		}, nil, nil))
 	for _, i := range []int{1, 1, 2, 2, 3, 3, 1, 2, 4} {
-		s.Next(i)
+		s.Next(context.Background(), i)
 	}
 	assert.Equal(t, []int{1, 2, 3, 4}, actual)
 }

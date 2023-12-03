@@ -1,17 +1,21 @@
 package rx
 
 import (
+	"context"
 	"sync"
 	"time"
 )
 
 type ReplaySubject[T any] struct {
 	subject[T]
-	buffer     []T
-	timeStamps []time.Time
-	complete   bool
-	err        error
-	opt        replaySubjectOptions
+	buffer      []T
+	ctxBuffer   []context.Context
+	timeStamps  []time.Time
+	complete    bool
+	ctxComplete context.Context
+	err         error
+	ctxErr      context.Context
+	opt         replaySubjectOptions
 
 	mx sync.RWMutex
 }
@@ -58,8 +62,8 @@ func (r *ReplaySubject[T]) Subscribe(o Observer[T]) Subscription {
 			r.mx.RLock()
 			defer r.mx.RUnlock()
 
-			for _, value := range r.buffer {
-				r.subject.Next(value)
+			for i, value := range r.buffer {
+				r.subject.Next(r.ctxBuffer[i], value)
 			}
 		}()
 	} else {
@@ -71,7 +75,7 @@ func (r *ReplaySubject[T]) Subscribe(o Observer[T]) Subscription {
 
 			for i, value := range r.buffer {
 				if now.Sub(r.timeStamps[i]) <= r.opt.window {
-					r.subject.Next(value)
+					r.subject.Next(r.ctxBuffer[i], value)
 				} else {
 					inWindow = i + 1
 				}
@@ -82,6 +86,7 @@ func (r *ReplaySubject[T]) Subscribe(o Observer[T]) Subscription {
 			defer r.mx.Unlock()
 
 			r.buffer = r.buffer[inWindow:]
+			r.ctxBuffer = r.ctxBuffer[inWindow:]
 			r.timeStamps = r.timeStamps[inWindow:]
 		}()
 	}
@@ -90,54 +95,58 @@ func (r *ReplaySubject[T]) Subscribe(o Observer[T]) Subscription {
 		defer r.mx.RUnlock()
 
 		if r.err != nil {
-			r.subject.Error(r.err)
+			r.subject.Error(r.ctxErr, r.err)
 		}
 		if r.complete {
-			r.subject.Complete()
+			r.subject.Complete(r.ctxComplete)
 		}
 	}()
 	return s
 }
 
-func (r *ReplaySubject[T]) Next(value T) {
+func (r *ReplaySubject[T]) Next(ctx context.Context, value T) {
 	func() {
 		r.mx.Lock()
 		defer r.mx.Unlock()
 
 		if r.opt.maxBufSize == 0 || len(r.buffer) < r.opt.maxBufSize {
 			r.buffer = append(r.buffer, value)
+			r.ctxBuffer = append(r.ctxBuffer, ctx)
 			if r.opt.window != time.Duration(0) {
 				r.timeStamps = append(r.timeStamps, time.Now())
 			}
 		} else {
 			r.buffer = append(r.buffer[1:], value)
+			r.ctxBuffer = append(r.ctxBuffer, ctx)
 			if r.opt.window != time.Duration(0) {
 				r.timeStamps = append(r.timeStamps[1:], time.Now())
 			}
 		}
 	}()
 
-	r.subject.Next(value)
+	r.subject.Next(ctx, value)
 }
 
-func (r *ReplaySubject[T]) Error(err error) {
+func (r *ReplaySubject[T]) Error(ctx context.Context, err error) {
 	func() {
 		r.mx.Lock()
 		defer r.mx.Unlock()
 
 		r.err = err
+		r.ctxErr = ctx
 	}()
 
-	r.subject.Error(err)
+	r.subject.Error(ctx, err)
 }
 
-func (r *ReplaySubject[T]) Complete() {
+func (r *ReplaySubject[T]) Complete(ctx context.Context) {
 	func() {
 		r.mx.Lock()
 		defer r.mx.Unlock()
 
 		r.complete = true
+		r.ctxComplete = ctx
 	}()
 
-	r.subject.Complete()
+	r.subject.Complete(ctx)
 }

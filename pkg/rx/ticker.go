@@ -1,6 +1,7 @@
 package rx
 
 import (
+	"context"
 	"sync"
 	"time"
 )
@@ -12,13 +13,13 @@ type Ticker interface {
 	Stop()
 }
 
-func NewTicker(due, interval time.Duration) Ticker {
+func NewTicker(ctx context.Context, due, interval time.Duration) Ticker {
 	t := &ticker{
 		Subject:  NewSubject[time.Time](),
 		interval: interval,
 	}
 	go func() {
-		t.Next(<-time.After(due))
+		t.Next(ctx, <-time.After(due))
 
 		t.mx.Lock()
 		defer t.mx.Unlock()
@@ -27,9 +28,9 @@ func NewTicker(due, interval time.Duration) Ticker {
 			t.ticker = time.NewTicker(t.interval)
 			go func() {
 				for now := range t.ticker.C {
-					t.Next(now)
+					t.Next(ctx, now)
 				}
-				t.Complete()
+				t.Complete(ctx)
 			}()
 		}
 	}()

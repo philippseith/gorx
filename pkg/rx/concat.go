@@ -1,6 +1,7 @@
 package rx
 
 import (
+	"context"
 	"sync"
 )
 
@@ -20,28 +21,28 @@ type concat[T any] struct {
 	mxEvents      sync.Mutex
 }
 
-func (c *concat[T]) Next(t T) {
+func (c *concat[T]) Next(ctx context.Context, t T) {
 	if c.observer() != nil {
 		func() {
 			c.mxEvents.Lock()
 			defer c.mxEvents.Unlock()
 
-			c.observer().Next(t)
+			c.observer().Next(ctx, t)
 		}()
 	}
 }
 
-func (c *concat[T]) Error(err error) {
+func (c *concat[T]) Error(ctx context.Context, err error) {
 	if c.observer() != nil {
 		func() {
 			c.mxEvents.Lock()
 			defer c.mxEvents.Unlock()
-			c.observer().Error(err)
+			c.observer().Error(ctx, err)
 		}()
 	}
 }
 
-func (c *concat[T]) Complete() {
+func (c *concat[T]) Complete(ctx context.Context) {
 	c.unsubscribeAndNilSubscription()
 
 	func() {
@@ -52,7 +53,7 @@ func (c *concat[T]) Complete() {
 	}()
 
 	if source := c.currentSource(); source == nil {
-		c.sendComplete()
+		c.sendComplete(ctx)
 	} else {
 		c.setSubscriptionInComplete(source.Subscribe(c))
 	}
@@ -143,10 +144,10 @@ func (c *concat[T]) unsubscribeAndNilSubscription() {
 	}
 }
 
-func (c *concat[T]) sendComplete() {
+func (c *concat[T]) sendComplete(ctx context.Context) {
 	c.mxEvents.Lock()
 	defer c.mxEvents.Unlock()
 	if o := c.observer(); o != nil {
-		o.Complete()
+		o.Complete(ctx)
 	}
 }

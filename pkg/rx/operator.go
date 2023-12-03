@@ -1,6 +1,7 @@
 package rx
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"runtime/debug"
@@ -16,12 +17,12 @@ type Operator[T any, U any] struct {
 	t2u                func(T) U
 }
 
-func (op *Operator[T, U]) Next(t T) {
+func (op *Operator[T, U]) Next(ctx context.Context, t T) {
 	defer func() {
 		if r := recover(); r != nil {
 			err := fmt.Errorf("panic in %T.Next(%v): %v.\n%s", op, t, r, string(debug.Stack()))
 			if o := op.observer(); o != nil {
-				o.Error(err)
+				o.Error(ctx, err)
 			} else {
 				log.Print(err)
 			}
@@ -33,12 +34,12 @@ func (op *Operator[T, U]) Next(t T) {
 			op.mxEvents.Lock()
 			defer op.mxEvents.Unlock()
 
-			o.Next(op.t2u(t))
+			o.Next(ctx, op.t2u(t))
 		}()
 	}
 }
 
-func (op *Operator[T, U]) Error(err error) {
+func (op *Operator[T, U]) Error(ctx context.Context, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("panic in %T.Error(%v): %v.\n%s", op, err, r, string(debug.Stack()))
@@ -50,17 +51,17 @@ func (op *Operator[T, U]) Error(err error) {
 			op.mxEvents.Lock()
 			defer op.mxEvents.Unlock()
 
-			o.Error(err)
+			o.Error(ctx, err)
 		}()
 	}
 }
 
-func (op *Operator[T, U]) Complete() {
+func (op *Operator[T, U]) Complete(ctx context.Context) {
 	defer func() {
 		if r := recover(); r != nil {
 			err := fmt.Errorf("panic in %T.Complete(): %v\n%s", op, r, string(debug.Stack()))
 			if o := op.observer(); o != nil {
-				o.Error(err)
+				o.Error(ctx, err)
 			} else {
 				log.Print(err)
 			}
@@ -72,7 +73,7 @@ func (op *Operator[T, U]) Complete() {
 			op.mxEvents.Lock()
 			defer op.mxEvents.Unlock()
 
-			o.Complete()
+			o.Complete(ctx)
 		}()
 	}
 }

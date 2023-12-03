@@ -1,17 +1,19 @@
 package rx_test
 
 import (
-	"github.com/philippseith/gorx/pkg/rx"
-	"github.com/stretchr/testify/assert"
+	"context"
 	"testing"
 	"time"
+
+	"github.com/philippseith/gorx/pkg/rx"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMerge(t *testing.T) {
-	t1 := rx.Map[time.Time, int](rx.NewTicker(0, 100*time.Millisecond), func(t time.Time) int {
+	t1 := rx.Map[time.Time, int](rx.NewTicker(context.Background(), 0, 100*time.Millisecond), func(t time.Time) int {
 		return 100
 	}).ToConnectable()
-	t2 := rx.Map[time.Time, int](rx.NewTicker(50*time.Millisecond, 100*time.Millisecond), func(t time.Time) int {
+	t2 := rx.Map[time.Time, int](rx.NewTicker(context.Background(), 50*time.Millisecond, 100*time.Millisecond), func(t time.Time) int {
 		return 150
 	}).ToConnectable()
 	m := rx.Merge[int](
