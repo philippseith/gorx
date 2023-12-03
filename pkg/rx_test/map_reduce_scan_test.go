@@ -1,7 +1,6 @@
 package rx_test
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -21,7 +20,7 @@ func TestMap(t *testing.T) {
 	}, nil, nil))
 
 	for _, i := range []int{3, 1, 4, 1, 5} {
-		s.Next(context.Background(), i)
+		s.Next(i)
 	}
 	assert.Equal(t, []string{"3", "1", "4", "1", "5"}, actual)
 }

@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-var contextKeyDebounceTrigger = contextKey("Debounce Trigger")
-
 // DebounceTime returns an Observable that delays the emissions of the source
 // Subscribable by the specified duration and may drop some values if they occur
 // too frequently.
@@ -23,7 +21,7 @@ func Debounce[T any, U any](s Subscribable[T], trigger Subscribable[U]) Observab
 	}
 
 	d.prepareSubscribe(func() Subscription {
-		triggerSub := trigger.Subscribe(OnNextWithContext(func(_ context.Context, u U) {
+		triggerSub := trigger.Subscribe(OnNextWithContext(func(ctx context.Context, _ U) {
 			if func() bool {
 				d.mx.RLock()
 				defer d.mx.RUnlock()
@@ -36,7 +34,7 @@ func Debounce[T any, U any](s Subscribable[T], trigger Subscribable[U]) Observab
 
 					d.hasLast = false
 				}()
-				d.Operator.Next(context.WithValue(d.ctx, contextKeyDebounceTrigger, u), d.last) // nolint:contextcheck
+				d.Operator.Next(ctx, d.last)
 			}
 
 		}))
@@ -50,7 +48,6 @@ func Debounce[T any, U any](s Subscribable[T], trigger Subscribable[U]) Observab
 type debounce[T any] struct {
 	Operator[T, T]
 	hasLast bool
-	ctx     context.Context
 	last    T
 	mx      sync.RWMutex
 }
@@ -59,7 +56,6 @@ func (d *debounce[T]) Next(ctx context.Context, next T) {
 	d.mx.Lock()
 	defer d.mx.Unlock()
 
-	d.ctx = ctx
 	d.last = next
 	d.hasLast = true
 }

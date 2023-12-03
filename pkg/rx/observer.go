@@ -15,21 +15,9 @@ type Observer[T any] interface {
 
 func NewObserver[T any](next func(T), err func(error), complete func()) Observer[T] {
 	return &observer[T]{
-		next: func(_ context.Context, value T) {
-			if next != nil {
-				next(value)
-			}
-		},
-		err: func(_ context.Context, e error) {
-			if err != nil {
-				err(e)
-			}
-		},
-		complete: func(_ context.Context) {
-			if complete != nil {
-				complete()
-			}
-		},
+		next:     func(_ context.Context, value T) { next(value) },
+		err:      func(_ context.Context, e error) { err(e) },
+		complete: func(_ context.Context) { complete() },
 	}
 }
 
@@ -49,12 +37,6 @@ func OnNextWithContext[T any](next func(context.Context, T)) Observer[T] {
 	return &observer[T]{next: next, err: func(_ context.Context, err error) { log.Print(err) }}
 }
 
-type contextKey string
-
-func (c contextKey) String() string {
-	return "rx context key " + string(c)
-}
-
 type observer[T any] struct {
 	next     func(context.Context, T)
 	err      func(context.Context, error)
@@ -68,7 +50,9 @@ func (o *observer[T]) Next(ctx context.Context, value T) {
 		}
 	}()
 
-	o.next(ctx, value)
+	if o.next != nil {
+		o.next(ctx, value)
+	}
 }
 
 func (o *observer[T]) Error(ctx context.Context, err error) {
@@ -78,7 +62,9 @@ func (o *observer[T]) Error(ctx context.Context, err error) {
 		}
 	}()
 
-	o.err(ctx, err)
+	if o.err != nil {
+		o.err(ctx, err)
+	}
 }
 
 func (o *observer[T]) Complete(ctx context.Context) {
@@ -88,5 +74,7 @@ func (o *observer[T]) Complete(ctx context.Context) {
 		}
 	}()
 
-	o.complete(ctx)
+	if o.complete != nil {
+		o.complete(ctx)
+	}
 }

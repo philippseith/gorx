@@ -1,7 +1,6 @@
 package rx_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,12 +12,12 @@ func TestShareReplayWithRefCount(t *testing.T) {
 	subscribedOnce := false
 	source := rx.Create[int](func(o rx.Observer[int]) rx.Subscription {
 		if !subscribedOnce {
-			o.Next(context.Background(), 0)
-			o.Next(context.Background(), 1)
-			o.Next(context.Background(), 2)
+			o.Next(0)
+			o.Next(1)
+			o.Next(2)
 			subscribedOnce = true
 		} else {
-			o.Next(context.Background(), 314)
+			o.Next(314)
 		}
 		return rx.NewSubscription(func() {})
 	})
@@ -49,12 +48,12 @@ func TestShareReplayWithoutRefCount(t *testing.T) {
 	subscribedOnce := false
 	source := rx.Create[int](func(o rx.Observer[int]) rx.Subscription {
 		if !subscribedOnce {
-			o.Next(context.Background(), 0)
-			o.Next(context.Background(), 1)
-			o.Next(context.Background(), 2)
+			o.Next(0)
+			o.Next(1)
+			o.Next(2)
 			subscribedOnce = true
 		} else {
-			o.Next(context.Background(), 314)
+			o.Next(314)
 		}
 		return rx.NewSubscription(func() {})
 	})

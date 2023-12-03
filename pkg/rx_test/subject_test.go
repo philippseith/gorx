@@ -1,7 +1,6 @@
 package rx_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,21 +25,21 @@ func TestSubjectNext(t *testing.T) {
 
 	n1 := []int{1, 2, 3}
 	for _, v := range n1 {
-		s.Next(context.Background(), v)
+		s.Next(v)
 	}
 	assert.Equal(t, n1, ov)
 	assert.Equal(t, n1, pv)
 
 	pu.Unsubscribe()
 
-	s.Next(context.Background(), 4)
+	s.Next(4)
 
 	assert.Equal(t, []int{1, 2, 3, 4}, ov)
 	assert.Equal(t, n1, pv)
 
 	ou.Unsubscribe()
 
-	s.Next(context.Background(), 5)
+	s.Next(5)
 
 	assert.Equal(t, []int{1, 2, 3, 4}, ov)
 	assert.Equal(t, n1, pv)
