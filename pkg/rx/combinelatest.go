@@ -1,7 +1,6 @@
 package rx
 
 import (
-	"context"
 	"sync"
 )
 
@@ -17,13 +16,13 @@ func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[a
 	c.prepareSubscribe(func() Subscription {
 		for i, source := range sources {
 			idx := i
-			c.subs[idx] = source.Subscribe(NewObserverWithContext[any](
+			c.subs[idx] = source.Subscribe(NewObserver[any](
 				// Next
-				func(ctx context.Context, next any) { c.next(ctx, combine, idx, next) },
+				func(next any) { c.next(combine, idx, next) },
 				// Error
 				c.Operator.Error,
 				// Complete
-				func(ctx context.Context) { c.complete(ctx, idx) }))
+				func() { c.complete(idx) }))
 		}
 		return NewSubscription(func() {
 			for _, sub := range c.subs {
@@ -43,7 +42,7 @@ type combineLatest[T any] struct {
 	mx sync.RWMutex
 }
 
-func (c *combineLatest[T]) next(ctx context.Context, combine func(next ...any) T, idx int, next any) {
+func (c *combineLatest[T]) next(combine func(next ...any) T, idx int, next any) {
 	if func() bool {
 		c.mx.Lock()
 		defer c.mx.Unlock()
@@ -60,10 +59,10 @@ func (c *combineLatest[T]) next(ctx context.Context, combine func(next ...any) T
 	}
 	lasts := make([]any, len(c.lasts))
 	copy(lasts, c.lasts)
-	c.Operator.Next(ctx, combine(lasts...))
+	c.Operator.Next(combine(lasts...))
 }
 
-func (c *combineLatest[T]) complete(ctx context.Context, idx int) {
+func (c *combineLatest[T]) complete(idx int) {
 	if func() bool {
 		c.mx.Lock()
 		defer c.mx.Unlock()
@@ -78,5 +77,5 @@ func (c *combineLatest[T]) complete(ctx context.Context, idx int) {
 	}() {
 		return
 	}
-	c.Operator.Complete(ctx)
+	c.Operator.Complete()
 }

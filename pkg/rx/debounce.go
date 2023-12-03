@@ -1,7 +1,6 @@
 package rx
 
 import (
-	"context"
 	"sync"
 	"time"
 )
@@ -10,7 +9,7 @@ import (
 // Subscribable by the specified duration and may drop some values if they occur
 // too frequently.
 func DebounceTime[T any](s Subscribable[T], duration time.Duration) Observable[T] {
-	return Debounce[T, time.Time](s, NewTicker(context.Background(), 0, duration))
+	return Debounce[T, time.Time](s, NewTicker(0, duration))
 }
 
 // Debounce emits a notification from the source Observable only after a
@@ -21,7 +20,7 @@ func Debounce[T any, U any](s Subscribable[T], trigger Subscribable[U]) Observab
 	}
 
 	d.prepareSubscribe(func() Subscription {
-		triggerSub := trigger.Subscribe(OnNextWithContext(func(ctx context.Context, _ U) {
+		triggerSub := trigger.Subscribe(OnNext(func(U) {
 			if func() bool {
 				d.mx.RLock()
 				defer d.mx.RUnlock()
@@ -34,7 +33,7 @@ func Debounce[T any, U any](s Subscribable[T], trigger Subscribable[U]) Observab
 
 					d.hasLast = false
 				}()
-				d.Operator.Next(ctx, d.last)
+				d.Operator.Next(d.last)
 			}
 
 		}))
@@ -52,7 +51,7 @@ type debounce[T any] struct {
 	mx      sync.RWMutex
 }
 
-func (d *debounce[T]) Next(ctx context.Context, next T) {
+func (d *debounce[T]) Next(next T) {
 	d.mx.Lock()
 	defer d.mx.Unlock()
 

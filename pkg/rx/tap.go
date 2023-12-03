@@ -1,7 +1,6 @@
 package rx
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"runtime/debug"
@@ -10,12 +9,7 @@ import (
 
 // Tap allows to tap into all methods of the Subscriber/Subscribable interface.
 // Where values are passed to the subscriber, Tap can alter them.
-func Tap[T any](s Subscribable[T],
-	subscribe func(Observer[T]),
-	next func(context.Context, T) (context.Context, T),
-	err func(context.Context, error) (context.Context, error),
-	complete func(context.Context) context.Context,
-	unsubscribe func()) Observable[T] {
+func Tap[T any](s Subscribable[T], subscribe func(Observer[T]), next func(T) T, err func(error) error, complete, unsubscribe func()) Observable[T] {
 	t := &tap[T]{
 		subscribe:   subscribe,
 		next:        next,
@@ -31,15 +25,14 @@ func Tap[T any](s Subscribable[T],
 func Log[T any](s Subscribable[T], id string) Observable[T] {
 	return Tap(s, func(o Observer[T]) {
 		log.Printf("Subscribe %s: %T", id, o)
-	}, func(ctx context.Context, t T) (context.Context, T) {
+	}, func(t T) T {
 		log.Printf("Next %s: %+v", id, t)
-		return ctx, t
-	}, func(ctx context.Context, err error) (context.Context, error) {
+		return t
+	}, func(err error) error {
 		log.Printf("Error %s: %v", id, err)
-		return ctx, err
-	}, func(ctx context.Context) context.Context {
+		return err
+	}, func() {
 		log.Printf("Complete %s", id)
-		return ctx
 	}, func() {
 		log.Printf("Unsubscribe %s", id)
 	})
@@ -50,19 +43,19 @@ type tap[T any] struct {
 	onSubscribe        func() Subscription
 	sourceSubscription Subscription
 	subscribe          func(Observer[T])
-	next               func(context.Context, T) (context.Context, T)
-	err                func(context.Context, error) (context.Context, error)
-	complete           func(context.Context) context.Context
+	next               func(T) T
+	err                func(error) error
+	complete           func()
 	unsubscribe        func()
 	mxState            sync.RWMutex
 	mxEvents           sync.Mutex
 }
 
-func (t *tap[T]) Next(ctx context.Context, value T) {
+func (t *tap[T]) Next(value T) {
 	defer func() {
 		if r := recover(); r != nil {
 			err := fmt.Errorf("panic in %T.Next(%v): %v.\n%s", t, value, r, string(debug.Stack()))
-			t.Error(ctx, err)
+			t.Error(err)
 		}
 	}()
 
@@ -71,16 +64,16 @@ func (t *tap[T]) Next(ctx context.Context, value T) {
 		defer t.mxEvents.Unlock()
 
 		if t.next != nil {
-			ctx, value = t.next(ctx, value)
+			value = t.next(value)
 		}
 		if o := t.getObserver(); o != nil {
-			o.Next(ctx, value)
+			o.Next(value)
 		}
 	}()
 
 }
 
-func (t *tap[T]) Error(ctx context.Context, err error) {
+func (t *tap[T]) Error(err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("panic in %T.Error(%v): %v.\n%s", t, err, r, string(debug.Stack()))
@@ -92,19 +85,19 @@ func (t *tap[T]) Error(ctx context.Context, err error) {
 		defer t.mxEvents.Unlock()
 
 		if t.err != nil {
-			ctx, err = t.err(ctx, err)
+			err = t.err(err)
 		}
 		if o := t.getObserver(); o != nil {
-			o.Error(ctx, err)
+			o.Error(err)
 		}
 	}()
 }
 
-func (t *tap[T]) Complete(ctx context.Context) {
+func (t *tap[T]) Complete() {
 	defer func() {
 		if r := recover(); r != nil {
 			err := fmt.Errorf("panic in %T.Complete(): %v\n%s", t, r, string(debug.Stack()))
-			t.Error(ctx, err)
+			t.Error(err)
 		}
 	}()
 
@@ -113,10 +106,10 @@ func (t *tap[T]) Complete(ctx context.Context) {
 		defer t.mxEvents.Unlock()
 
 		if t.complete != nil {
-			ctx = t.complete(ctx)
+			t.complete()
 		}
 		if o := t.getObserver(); o != nil {
-			o.Complete(ctx)
+			o.Complete()
 		}
 	}()
 }

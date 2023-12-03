@@ -1,7 +1,6 @@
 package rx
 
 import (
-	"context"
 	"fmt"
 	"runtime/debug"
 )
@@ -21,7 +20,7 @@ type create[T any] struct {
 func (c *create[T]) Subscribe(o Observer[T]) Subscription {
 	defer func() {
 		if r := recover(); r != nil {
-			o.Error(context.Background(), fmt.Errorf("panic in Create(): %v\n%s", r, string(debug.Stack())))
+			o.Error(fmt.Errorf("panic in Create(): %v\n%s", r, string(debug.Stack())))
 		}
 	}()
 
@@ -43,7 +42,7 @@ type deferImp[T any] struct {
 func (d *deferImp[T]) Subscribe(o Observer[T]) Subscription {
 	defer func() {
 		if r := recover(); r != nil {
-			o.Error(context.Background(), fmt.Errorf("panic in Defer(): %v\n%s", r, string(debug.Stack())))
+			o.Error(fmt.Errorf("panic in Defer(): %v\n%s", r, string(debug.Stack())))
 		}
 	}()
 

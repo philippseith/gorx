@@ -1,7 +1,6 @@
 package rx
 
 import (
-	"context"
 	"fmt"
 	"runtime/debug"
 	"sync"
@@ -44,7 +43,7 @@ func (s *subject[T]) Subscribe(o Observer[T]) Subscription {
 	})
 }
 
-func (s *subject[T]) Next(ctx context.Context, value T) {
+func (s *subject[T]) Next(value T) {
 	oo := s.getObservers()
 
 	s.mxEvents.Lock()
@@ -54,15 +53,15 @@ func (s *subject[T]) Next(ctx context.Context, value T) {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					o.Error(ctx, fmt.Errorf("panic in %T.Next(%v): %v\n%s", o, value, r, string(debug.Stack())))
+					o.Error(fmt.Errorf("panic in %T.Next(%v): %v\n%s", o, value, r, string(debug.Stack())))
 				}
 			}()
-			o.Next(ctx, value)
+			o.Next(value)
 		}()
 	}
 }
 
-func (s *subject[T]) Error(ctx context.Context, err error) {
+func (s *subject[T]) Error(err error) {
 	oo := s.getObservers()
 
 	s.mxEvents.Lock()
@@ -70,11 +69,11 @@ func (s *subject[T]) Error(ctx context.Context, err error) {
 
 	// no defer recover with sending to o.Error(), as this would build an endless loop
 	for _, o := range oo {
-		o.Error(ctx, err)
+		o.Error(err)
 	}
 }
 
-func (s *subject[T]) Complete(ctx context.Context) {
+func (s *subject[T]) Complete() {
 	oo := s.getObservers()
 
 	s.mxEvents.Lock()
@@ -84,10 +83,10 @@ func (s *subject[T]) Complete(ctx context.Context) {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					o.Error(ctx, fmt.Errorf("panic in %T.Complete(): %v\n%s", o, r, string(debug.Stack())))
+					o.Error(fmt.Errorf("panic in %T.Complete(): %v\n%s", o, r, string(debug.Stack())))
 				}
 			}()
-			o.Complete(ctx)
+			o.Complete()
 		}()
 	}
 }
