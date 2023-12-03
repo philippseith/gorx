@@ -3,7 +3,7 @@ package rx
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"runtime/debug"
 	"sync"
 )
@@ -30,18 +30,24 @@ func Tap[T any](s Subscribable[T],
 // Log allows to log all method invocations of the Subscriber/Subscribable interface.
 func Log[T any](s Subscribable[T], id string) Observable[T] {
 	return Tap(s, func(o Observer[T]) {
-		log.Printf("Subscribe %s: %T", id, o)
+		slog.LogAttrs(context.Background(), slog.LevelInfo, "Subscribe",
+			slog.Attr{Key: "id", Value: slog.StringValue(id)},
+			slog.Attr{Key: "observer", Value: slogTypeValue(o)})
 	}, func(ctx context.Context, t T) (context.Context, T) {
-		log.Printf("Next %s: %+v", id, t)
+		slog.LogAttrs(ctx, slog.LevelInfo, "Next",
+			slog.Attr{Key: "id", Value: slog.StringValue(id)},
+			slog.Attr{Key: "value", Value: slog.AnyValue(t)})
 		return ctx, t
 	}, func(ctx context.Context, err error) (context.Context, error) {
-		log.Printf("Error %s: %v", id, err)
+		slog.LogAttrs(ctx, slog.LevelInfo, "Error",
+			slog.Attr{Key: "id", Value: slog.StringValue(id)},
+			slog.Attr{Key: "error", Value: slog.AnyValue(err)})
 		return ctx, err
 	}, func(ctx context.Context) context.Context {
-		log.Printf("Complete %s", id)
+		slog.LogAttrs(ctx, slog.LevelInfo, "Complete", slog.Attr{Key: "id", Value: slog.StringValue(id)})
 		return ctx
 	}, func() {
-		log.Printf("Unsubscribe %s", id)
+		slog.LogAttrs(context.Background(), slog.LevelInfo, "Unsubscribe", slog.Attr{Key: "id", Value: slog.StringValue(id)})
 	})
 }
 
@@ -61,7 +67,14 @@ type tap[T any] struct {
 func (t *tap[T]) Next(ctx context.Context, value T) {
 	defer func() {
 		if r := recover(); r != nil {
-			err := fmt.Errorf("panic in %T.Next(%v): %v.\n%s", t, value, r, string(debug.Stack()))
+			slog.LogAttrs(ctx, slog.LevelError, "panic in Next",
+				slog.Attr{Key: "observer", Value: slogTypeValue(t.observer)},
+				slog.Attr{Key: "value", Value: slog.AnyValue(value)},
+				slog.Group("panic",
+					slog.Attr{Key: "error", Value: slog.AnyValue(r)},
+					slog.Attr{Key: "stack", Value: slog.StringValue(string(debug.Stack()))}))
+
+			err := fmt.Errorf("panic in %T.Next(%v): %v.\n%s", t.observer, value, r, string(debug.Stack()))
 			t.Error(ctx, err)
 		}
 	}()
@@ -83,7 +96,12 @@ func (t *tap[T]) Next(ctx context.Context, value T) {
 func (t *tap[T]) Error(ctx context.Context, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("panic in %T.Error(%v): %v.\n%s", t, err, r, string(debug.Stack()))
+			slog.LogAttrs(ctx, slog.LevelError, "panic in Error",
+				slog.Attr{Key: "observer", Value: slogTypeValue(t.observer)},
+				slog.Attr{Key: "error", Value: slog.AnyValue(err)},
+				slog.Group("panic",
+					slog.Attr{Key: "error", Value: slog.AnyValue(r)},
+					slog.Attr{Key: "stack", Value: slog.StringValue(string(debug.Stack()))}))
 		}
 	}()
 
@@ -103,6 +121,12 @@ func (t *tap[T]) Error(ctx context.Context, err error) {
 func (t *tap[T]) Complete(ctx context.Context) {
 	defer func() {
 		if r := recover(); r != nil {
+			slog.LogAttrs(ctx, slog.LevelError, "panic in Complete",
+				slog.Attr{Key: "observer", Value: slogTypeValue(t.observer)},
+				slog.Group("panic",
+					slog.Attr{Key: "error", Value: slog.AnyValue(r)},
+					slog.Attr{Key: "stack", Value: slog.StringValue(string(debug.Stack()))}))
+
 			err := fmt.Errorf("panic in %T.Complete(): %v\n%s", t, r, string(debug.Stack()))
 			t.Error(ctx, err)
 		}
@@ -137,7 +161,12 @@ func (t *tap[T]) Subscribe(o Observer[T]) Subscription {
 		defer t.mxState.RUnlock()
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("panic in %T.Subscribe(%v): %v.\n%s", t, o, r, string(debug.Stack()))
+				slog.LogAttrs(context.Background(), slog.LevelError, "panic in Subscribe",
+					slog.Attr{Key: "observer", Value: slogTypeValue(o)},
+					slog.Group("panic",
+						slog.Attr{Key: "error", Value: slog.AnyValue(r)},
+						slog.Attr{Key: "stack", Value: slog.StringValue(string(debug.Stack()))}))
+
 			}
 		}()
 
@@ -166,7 +195,11 @@ func (t *tap[T]) Subscribe(o Observer[T]) Subscription {
 		defer t.mxState.RUnlock()
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("panic in %T.Unsubscribe(): %v.\n%s", t, r, string(debug.Stack()))
+				slog.LogAttrs(context.Background(), slog.LevelError, "panic in Unsubscribe",
+					slog.Attr{Key: "observer", Value: slogTypeValue(o)},
+					slog.Group("panic",
+						slog.Attr{Key: "error", Value: slog.AnyValue(r)},
+						slog.Attr{Key: "stack", Value: slog.StringValue(string(debug.Stack()))}))
 			}
 		}()
 
@@ -177,4 +210,8 @@ func (t *tap[T]) Subscribe(o Observer[T]) Subscription {
 			t.sourceSubscription.Unsubscribe()
 		}
 	})
+}
+
+func slogTypeValue(a any) slog.Value {
+	return slog.StringValue(fmt.Sprintf("%T", a))
 }

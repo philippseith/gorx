@@ -3,7 +3,7 @@ package rx
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"runtime/debug"
 	"sync"
 )
@@ -20,11 +20,16 @@ type Operator[T any, U any] struct {
 func (op *Operator[T, U]) Next(ctx context.Context, t T) {
 	defer func() {
 		if r := recover(); r != nil {
+			slog.LogAttrs(ctx, slog.LevelError, "panic in Next",
+				slog.Attr{Key: "operator", Value: slogTypeValue(op)},
+				slog.Attr{Key: "value", Value: slog.AnyValue(t)},
+				slog.Group("panic",
+					slog.Attr{Key: "error", Value: slog.AnyValue(r)},
+					slog.Attr{Key: "stack", Value: slog.StringValue(string(debug.Stack()))}))
+
 			err := fmt.Errorf("panic in %T.Next(%v): %v.\n%s", op, t, r, string(debug.Stack()))
 			if o := op.observer(); o != nil {
 				o.Error(ctx, err)
-			} else {
-				log.Print(err)
 			}
 		}
 	}()
@@ -42,7 +47,12 @@ func (op *Operator[T, U]) Next(ctx context.Context, t T) {
 func (op *Operator[T, U]) Error(ctx context.Context, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("panic in %T.Error(%v): %v.\n%s", op, err, r, string(debug.Stack()))
+			slog.LogAttrs(ctx, slog.LevelError, "panic in Error",
+				slog.Attr{Key: "operator", Value: slogTypeValue(op)},
+				slog.Attr{Key: "error", Value: slog.AnyValue(err)},
+				slog.Group("panic",
+					slog.Attr{Key: "error", Value: slog.AnyValue(r)},
+					slog.Attr{Key: "stack", Value: slog.StringValue(string(debug.Stack()))}))
 		}
 	}()
 
@@ -59,11 +69,15 @@ func (op *Operator[T, U]) Error(ctx context.Context, err error) {
 func (op *Operator[T, U]) Complete(ctx context.Context) {
 	defer func() {
 		if r := recover(); r != nil {
+			slog.LogAttrs(ctx, slog.LevelError, "panic in Complete",
+				slog.Attr{Key: "operator", Value: slogTypeValue(op)},
+				slog.Group("panic",
+					slog.Attr{Key: "error", Value: slog.AnyValue(r)},
+					slog.Attr{Key: "stack", Value: slog.StringValue(string(debug.Stack()))}))
+
 			err := fmt.Errorf("panic in %T.Complete(): %v\n%s", op, r, string(debug.Stack()))
 			if o := op.observer(); o != nil {
 				o.Error(ctx, err)
-			} else {
-				log.Print(err)
 			}
 		}
 	}()
@@ -94,6 +108,17 @@ func (op *Operator[T, U]) Subscribe(o Observer[U]) Subscription {
 	if onSubscribe := func() func() Subscription {
 		op.mxState.Lock()
 		defer op.mxState.Unlock()
+		defer func() {
+			if r := recover(); r != nil {
+				slog.LogAttrs(context.Background(), slog.LevelError, "panic in Subscribe",
+					slog.Attr{Key: "operator", Value: slogTypeValue(op)},
+					slog.Attr{Key: "observer", Value: slogTypeValue(o)},
+					slog.Group("panic",
+						slog.Attr{Key: "error", Value: slog.AnyValue(r)},
+						slog.Attr{Key: "stack", Value: slog.StringValue(string(debug.Stack()))}))
+
+			}
+		}()
 
 		op.outObserver = o
 
@@ -114,6 +139,16 @@ func (op *Operator[T, U]) Subscribe(o Observer[U]) Subscription {
 	return NewSubscription(func() {
 		op.mxState.RLock()
 		defer op.mxState.RUnlock()
+		defer func() {
+			if r := recover(); r != nil {
+				slog.LogAttrs(context.Background(), slog.LevelError, "panic in Unsubscribe",
+					slog.Attr{Key: "operator", Value: slogTypeValue(op)},
+					slog.Attr{Key: "observer", Value: slogTypeValue(o)},
+					slog.Group("panic",
+						slog.Attr{Key: "error", Value: slog.AnyValue(r)},
+						slog.Attr{Key: "stack", Value: slog.StringValue(string(debug.Stack()))}))
+			}
+		}()
 
 		if op.sourceSubscription != nil {
 			op.sourceSubscription.Unsubscribe()

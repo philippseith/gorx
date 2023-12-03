@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"runtime/debug"
 )
 
@@ -49,12 +50,6 @@ func OnNextWithContext[T any](next func(context.Context, T)) Observer[T] {
 	return &observer[T]{next: next, err: func(_ context.Context, err error) { log.Print(err) }}
 }
 
-type contextKey string
-
-func (c contextKey) String() string {
-	return "rx context key " + string(c)
-}
-
 type observer[T any] struct {
 	next     func(context.Context, T)
 	err      func(context.Context, error)
@@ -64,7 +59,14 @@ type observer[T any] struct {
 func (o *observer[T]) Next(ctx context.Context, value T) {
 	defer func() {
 		if r := recover(); r != nil {
-			o.Error(ctx, fmt.Errorf("panic in %T.Next(%v): %v.\n%s", o, value, r, string(debug.Stack())))
+			slog.LogAttrs(ctx, slog.LevelError, "panic in Next",
+				slog.Attr{Key: "observer", Value: slog.AnyValue(o)},
+				slog.Attr{Key: "value", Value: slog.AnyValue(value)},
+				slog.Group("panic",
+					slog.Attr{Key: "error", Value: slog.AnyValue(r)},
+					slog.Attr{Key: "stack", Value: slog.StringValue(string(debug.Stack()))}))
+
+			o.Error(ctx, fmt.Errorf("panic in %T.Next(%#v): %v.\n%s", o, value, r, string(debug.Stack())))
 		}
 	}()
 
@@ -74,7 +76,12 @@ func (o *observer[T]) Next(ctx context.Context, value T) {
 func (o *observer[T]) Error(ctx context.Context, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("panic in %T.Error(%v): %v.\n%s", o, err, r, string(debug.Stack()))
+			slog.LogAttrs(ctx, slog.LevelError, "panic in Error",
+				slog.Attr{Key: "observer", Value: slog.AnyValue(o)},
+				slog.Attr{Key: "error", Value: slog.AnyValue(err)},
+				slog.Group("panic",
+					slog.Attr{Key: "error", Value: slog.AnyValue(r)},
+					slog.Attr{Key: "stack", Value: slog.StringValue(string(debug.Stack()))}))
 		}
 	}()
 
@@ -84,6 +91,12 @@ func (o *observer[T]) Error(ctx context.Context, err error) {
 func (o *observer[T]) Complete(ctx context.Context) {
 	defer func() {
 		if r := recover(); r != nil {
+			slog.LogAttrs(ctx, slog.LevelError, "panic in Complete",
+				slog.Attr{Key: "observer", Value: slog.AnyValue(o)},
+				slog.Group("panic",
+					slog.Attr{Key: "error", Value: slog.AnyValue(r)},
+					slog.Attr{Key: "stack", Value: slog.StringValue(string(debug.Stack()))}))
+
 			o.Error(ctx, fmt.Errorf("panic in %T.Complete(): %v\n%s", o, r, string(debug.Stack())))
 		}
 	}()
