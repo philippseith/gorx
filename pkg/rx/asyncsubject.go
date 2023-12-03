@@ -1,9 +1,6 @@
 package rx
 
-import (
-	"context"
-	"sync"
-)
+import "sync"
 
 // AsyncSubject is a variant of Subject that only emits a value when it
 // completes. It will emit its latest value to all its observers on completion.
@@ -18,7 +15,7 @@ func NewAsyncSubject[T any]() *AsyncSubject[T] {
 	return &AsyncSubject[T]{Subject: NewSubject[T]()}
 }
 
-func (as *AsyncSubject[T]) Next(_ context.Context, value T) {
+func (as *AsyncSubject[T]) Next(value T) {
 	func(value T) {
 		as.mx.Lock()
 		defer as.mx.Unlock()
@@ -27,12 +24,12 @@ func (as *AsyncSubject[T]) Next(_ context.Context, value T) {
 	}(value)
 }
 
-func (as *AsyncSubject[T]) Complete(ctx context.Context) {
-	as.Subject.Next(ctx, func() T {
+func (as *AsyncSubject[T]) Complete() {
+	as.Subject.Next(func() T {
 		as.mx.RLock()
 		defer as.mx.RUnlock()
 
 		return as.value
 	}())
-	as.Subject.Complete(ctx)
+	as.Subject.Complete()
 }

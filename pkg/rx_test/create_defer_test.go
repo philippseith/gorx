@@ -1,7 +1,6 @@
 package rx_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,8 +10,8 @@ import (
 
 func TestCreate(t *testing.T) {
 	c := rx.Create(func(o rx.Observer[int]) rx.Subscription {
-		o.Next(context.Background(), 1)
-		o.Next(context.Background(), 2)
+		o.Next(1)
+		o.Next(2)
 		return rx.NewSubscription(func() {})
 	})
 

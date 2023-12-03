@@ -1,7 +1,5 @@
 package rx
 
-import "context"
-
 // Merge subscribes to each given input Subscribable (as arguments), and simply
 // forwards (without doing any transformation) all the values from all the input
 // Subscribables to the output Observable. The output Observable only completes
@@ -14,7 +12,7 @@ func Merge[T any](sources ...Subscribable[T]) Observable[T] {
 	m.completed = make([]bool, len(sources))
 	for i, source := range sources {
 		ci := i
-		m.subs = append(m.subs, source.Subscribe(NewObserverWithContext[T](m.Next, m.Error, func(ctx context.Context) {
+		m.subs = append(m.subs, source.Subscribe(NewObserver[T](m.Next, m.Error, func() {
 			func() {
 				m.mxState.Lock()
 				defer m.mxState.Unlock()
@@ -32,7 +30,7 @@ func Merge[T any](sources ...Subscribable[T]) Observable[T] {
 				}
 				return true
 			}() {
-				m.Complete(ctx)
+				m.Complete()
 			}
 		})))
 	}

@@ -1,7 +1,6 @@
 package rx_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,18 +12,18 @@ func TestCatch(t *testing.T) {
 	sourceUnsubscribed := false
 	catchUnsubscribed := false
 	c := rx.Create(func(o rx.Observer[int]) rx.Subscription {
-		o.Next(context.Background(), 1)
-		o.Next(context.Background(), 2)
-		o.Error(context.Background(), nil)
+		o.Next(1)
+		o.Next(2)
+		o.Error(nil)
 		return rx.NewSubscription(func() {
 			sourceUnsubscribed = true
 		})
 	}).ToConnectable()
 
-	cc := c.Catch(func(ctx context.Context, err error) rx.Subscribable[int] {
+	cc := c.Catch(func(err error) rx.Subscribable[int] {
 		return rx.Create(func(o rx.Observer[int]) rx.Subscription {
-			o.Next(ctx, 3)
-			o.Next(ctx, 4)
+			o.Next(3)
+			o.Next(4)
 			return rx.NewSubscription(func() {
 				catchUnsubscribed = true
 			})

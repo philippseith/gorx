@@ -1,7 +1,6 @@
 package rxpd
 
 import (
-	"context"
 	"time"
 
 	"github.com/philippseith/gorx/pkg/rx"
@@ -88,7 +87,7 @@ func (p *property[T]) AddTearDownLogic(logic func()) Property[T] {
 	return p
 }
 
-func (p *property[T]) Catch(catch func(context.Context, error) Subscribable[T]) Property[T] {
+func (p *property[T]) Catch(catch func(error) Subscribable[T]) Property[T] {
 	q := &property[T]{
 		interval: p.interval,
 		propertyOption: propertyOption[T]{
@@ -97,8 +96,8 @@ func (p *property[T]) Catch(catch func(context.Context, error) Subscribable[T]) 
 			write:       p.write,
 		},
 	}
-	q.Subscribable = rx.Catch[T](p, func(ctx context.Context, err error) rx.Subscribable[T] {
-		c := catch(ctx, err)
+	q.Subscribable = rx.Catch[T](p, func(err error) rx.Subscribable[T] {
+		c := catch(err)
 		q.interval = c.Interval()
 		q.setInterval = c.SetInterval
 		q.read = c.Read
@@ -161,12 +160,7 @@ func (p *property[T]) Take(count int) Property[T] {
 	return p.toProperty(rx.Take[T](p, count))
 }
 
-func (p *property[T]) Tap(
-	subscribe func(rx.Observer[T]),
-	next func(context.Context, T) (context.Context, T),
-	err func(context.Context, error) (context.Context, error),
-	complete func(context.Context) context.Context,
-	unsubscribe func()) Property[T] {
+func (p *property[T]) Tap(subscribe func(rx.Observer[T]), next func(T) T, err func(error) error, complete, unsubscribe func()) Property[T] {
 	return p.toProperty(rx.Tap[T](p, subscribe, next, err, complete, unsubscribe))
 }
 

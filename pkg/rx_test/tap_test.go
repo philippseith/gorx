@@ -1,7 +1,6 @@
 package rx_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,9 +11,9 @@ import (
 func TestTapRef(t *testing.T) {
 	x := 0
 	s := rx.NewSubject[*int]()
-	ta := s.Log("before").Tap(nil, func(ctx context.Context, i *int) (context.Context, *int) {
+	ta := s.Log("before").Tap(nil, func(i *int) *int {
 		*i = 1
-		return ctx, i
+		return i
 	}, nil, nil, nil).Log("after")
 
 	var y int
@@ -22,14 +21,14 @@ func TestTapRef(t *testing.T) {
 		y = *i
 	}))
 
-	s.Next(context.Background(), &x)
+	s.Next(&x)
 	assert.Equal(t, 1, y)
 }
 
 func TestTap(t *testing.T) {
 	s := rx.NewSubject[int]()
-	ta := s.Log("before").Tap(nil, func(ctx context.Context, i int) (context.Context, int) {
-		return ctx, i + 1
+	ta := s.Log("before").Tap(nil, func(i int) int {
+		return i + 1
 	}, nil, nil, nil).Log("after")
 
 	var y int
@@ -37,13 +36,13 @@ func TestTap(t *testing.T) {
 		y = i
 	}))
 
-	s.Next(context.Background(), 0)
+	s.Next(0)
 	assert.Equal(t, 1, y)
 }
 
 func TestPanic(t *testing.T) {
 	s := rx.NewSubject[int]()
-	tn := s.Log("before").Tap(nil, func(context.Context, int) (context.Context, int) {
+	tn := s.Log("before").Tap(nil, func(i int) int {
 		panic("Next")
 	}, nil, nil, nil).Log("after")
 
@@ -51,6 +50,6 @@ func TestPanic(t *testing.T) {
 	tn.Subscribe(rx.NewObserver[int](nil, func(err error) {
 		panicNext = err
 	}, nil))
-	s.Next(context.Background(), 0)
+	s.Next(0)
 	assert.NotNil(t, panicNext)
 }

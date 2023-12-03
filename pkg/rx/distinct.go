@@ -1,9 +1,6 @@
 package rx
 
-import (
-	"context"
-	"reflect"
-)
+import "reflect"
 
 // Distinct returns an Observable that emits all items emitted by the source
 // Subscribable that are distinct by comparison from previous items.
@@ -11,9 +8,9 @@ func Distinct[T comparable](s Subscribable[T]) Observable[T] {
 	values := map[T]struct{}{}
 	d := &Operator[T, T]{t2u: func(t T) T { return t }}
 	d.prepareSubscribe(func() Subscription {
-		return s.Subscribe(NewObserverWithContext[T](func(ctx context.Context, value T) {
+		return s.Subscribe(NewObserver[T](func(value T) {
 			if _, in := values[value]; !in {
-				d.Next(ctx, value)
+				d.Next(value)
 			}
 			values[value] = struct{}{}
 		}, d.Error, d.Complete))
@@ -31,9 +28,9 @@ func DistinctUntilChanged[T any](s Subscribable[T], equal func(T, T) bool) Obser
 		equal = func(a, b T) bool { return reflect.DeepEqual(a, b) }
 	}
 	d.prepareSubscribe(func() Subscription {
-		return s.Subscribe(NewObserverWithContext[T](func(ctx context.Context, value T) {
+		return s.Subscribe(NewObserver[T](func(value T) {
 			if last == nil || !equal(*last, value) {
-				d.Next(ctx, value)
+				d.Next(value)
 			}
 			last = &value
 		}, d.Error, d.Complete))

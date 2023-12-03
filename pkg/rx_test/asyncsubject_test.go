@@ -1,11 +1,9 @@
 package rx_test
 
 import (
-	"context"
 	"errors"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
+	"testing"
 
 	"github.com/philippseith/gorx/pkg/rx"
 )
@@ -26,14 +24,14 @@ func TestAsyncSubject_EmitsValueOnComplete(t *testing.T) {
 		flags[2] = true
 	}))
 
-	as.Next(context.Background(), 1)
+	as.Next(1)
 	assert.Equal(t, 0, r)
-	as.Next(context.Background(), 99)
+	as.Next(99)
 	assert.Equal(t, 0, r)
 	assert.False(t, flags[1])
 	assert.False(t, flags[2])
 	flags[0] = true
-	as.Complete(context.Background())
+	as.Complete()
 	assert.Equal(t, 99, r)
 	assert.False(t, flags[1])
 	assert.True(t, flags[2])
@@ -48,7 +46,7 @@ func TestAsyncSubject_DoesEmitError(t *testing.T) {
 		assert.Equal(t, err, e)
 		flags[0] = true
 	}, nil))
-	as.Error(context.Background(), err)
+	as.Error(err)
 
 	assert.True(t, flags[0])
 }
