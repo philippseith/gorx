@@ -13,10 +13,13 @@ import (
 type viewModel[T any] struct {
 	data T
 	sub  rx.Subscription
-	mx   sync.Mutex
+	mx   sync.RWMutex
 }
 
 func (v *viewModel[T]) Data() T {
+	v.mx.RLock()
+	defer v.mx.RUnlock()
+
 	return v.data
 }
 
