@@ -37,10 +37,10 @@ func NewHandler[T any](tmpl *template.Template, model rx.Subscribable[T], sessio
 	})
 
 	h.HandleSelf("vmChanged", func(ctx context.Context, socket live.Socket, d any) (any, error) {
-		vm, okVm := socket.Assigns().(*viewModel[T])
+		vm, okVM := socket.Assigns().(*viewModel[T])
 		data, okData := d.(T)
-		if okVm && okData {
-			vm.data = data
+		if okVM && okData {
+			vm.SetData(data)
 		}
 		return vm, nil
 	})

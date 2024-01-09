@@ -23,6 +23,13 @@ func (v *viewModel[T]) Data() T {
 	return v.data
 }
 
+func (v *viewModel[T]) SetData(data T) {
+	v.mx.Lock()
+	defer v.mx.Unlock()
+
+	v.data = data
+}
+
 func (v *viewModel[T]) subscribe(sub rx.Subscription) {
 	v.mx.Lock()
 	defer v.mx.Unlock()
