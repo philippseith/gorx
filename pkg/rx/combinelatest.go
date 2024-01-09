@@ -57,8 +57,16 @@ func (c *combineLatest[T]) next(combine func(next ...any) T, idx int, next any) 
 	}() {
 		return
 	}
-	lasts := make([]any, len(c.lasts))
-	copy(lasts, c.lasts)
+
+	lasts := func() []any {
+		c.mx.Lock()
+		defer c.mx.Unlock()
+
+		lasts := make([]any, len(c.lasts))
+		copy(lasts, c.lasts)
+		return lasts
+	}()
+
 	c.Operator.Next(combine(lasts...))
 }
 
