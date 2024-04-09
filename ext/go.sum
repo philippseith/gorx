@@ -80,6 +80,8 @@ github.com/pelletier/go-toml/v2 v2.0.9 h1:uH2qQXheeefCCkuBBSLi7jCiSmj3VRh2+Goq2N
 github.com/pelletier/go-toml/v2 v2.0.9/go.mod h1:tJU2Z3ZkXwnxa4DPO899bsyIoywizdUvyaeZurnPPDc=
 github.com/philippseith/gorx v0.0.0-20230821091837-469eb7d31243 h1:grUap8BVRjeh9KLvA2AlDf95AXUHAhQ0iviOlX4S9C4=
 github.com/philippseith/gorx v0.0.0-20230821091837-469eb7d31243/go.mod h1:ciMp6zxC1b/UenYNFIBGlmShNddEensXvwJVWYz/0XU=
+github.com/philippseith/gorx v0.0.0-20240409202507-eec9ef2e7d2d h1:sHIDqUmJlj6T/brV8MLG5Juob3UUPcwxzP0jF44JJjc=
+github.com/philippseith/gorx v0.0.0-20240409202507-eec9ef2e7d2d/go.mod h1:ffWJ5ZD3bf41sQYcBpdMFJ8aATmpzBmVNxPlacsVf8Q=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rs/xid v1.5.0 h1:mKX4bl4iPYJtEIxp6CYiUuLQ/8DYMoz0PUdtGgMFRVc=
