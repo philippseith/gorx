@@ -1,6 +1,7 @@
 run:
   tests: false
-  skip-dirs:
+issues:
+  exclude-dirs:
     - rx_test
 linters:
   enable:
