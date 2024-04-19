@@ -22,6 +22,9 @@ func FromRead[T any](ctx context.Context, readOption PropertyOption[T], options 
 	readOption(&p.propertyOption)
 
 	WithSetInterval[T](func(d time.Duration) {
+		if ctx.Err() != nil {
+			return
+		}
 		ivCh <- d
 	})(&p.propertyOption)
 
