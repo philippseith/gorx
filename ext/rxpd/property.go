@@ -253,11 +253,21 @@ func (p *property[T]) Read() rx.ResultChan[T] {
 }
 
 func (p *property[T]) Write(value T) <-chan error {
-	if p.write != nil {
-		return p.write(value)
-	}
 	ch := make(chan error)
-	close(ch)
+	defer close(ch)
+
+	if p.write != nil {
+		return func() (wCh <-chan error) {
+			defer func() {
+				if r := recover(); r != nil {
+					ch <- fmt.Errorf("panic in %T.Write(%v): %v.\n%s", p, value, r, string(debug.Stack()))
+					wCh = ch
+				}
+			}()
+			wCh = p.write(value)
+			return wCh
+		}()
+	}
 	return ch
 }
 
