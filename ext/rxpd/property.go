@@ -1,7 +1,9 @@
 package rxpd
 
 import (
+	"fmt"
 	"log"
+	"runtime/debug"
 	"time"
 
 	"github.com/philippseith/gorx/pkg/rx"
@@ -232,11 +234,21 @@ func (p *property[T]) Interval() time.Duration {
 }
 
 func (p *property[T]) Read() rx.ResultChan[T] {
-	if p.read != nil {
-		return p.read()
-	}
 	ch := make(chan rx.Result[T])
-	close(ch)
+	defer close(ch)
+
+	if p.read != nil {
+		return func() (rCh rx.ResultChan[T]) {
+			defer func() {
+				if r := recover(); r != nil {
+					ch <- rx.Result[T]{Err: fmt.Errorf("panic in %T.Read(): %v.\n%s", p, r, string(debug.Stack()))}
+					rCh = ch
+				}
+			}()
+			rCh = p.read()
+			return rCh
+		}()
+	}
 	return ch
 }
 

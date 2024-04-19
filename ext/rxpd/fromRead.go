@@ -2,6 +2,8 @@ package rxpd
 
 import (
 	"context"
+	"fmt"
+	"runtime/debug"
 	"time"
 
 	"github.com/philippseith/gorx/pkg/rx"
@@ -33,7 +35,15 @@ func FromRead[T any](ctx context.Context, readOption PropertyOption[T], options 
 				close(ivCh)
 				return
 			case <-ticker.C:
-				result := <-p.propertyOption.read()
+				result := func() (result rx.Result[T]) {
+					defer func() {
+						if r := recover(); r != nil {
+							result = rx.Result[T]{Err: fmt.Errorf("panic in FromRead using %T.Read(): %v.\n%s", p, r, string(debug.Stack()))}
+						}
+					}()
+					result = <-p.propertyOption.read()
+					return result
+				}()
 				if result.Err != nil {
 					continue
 				}
