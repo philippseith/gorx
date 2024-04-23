@@ -31,6 +31,9 @@ func FromRead[T any](ctx context.Context, readOption PropertyOption[T], options 
 	go func() {
 		ticker := time.NewTicker(time.Second)
 		ticker.Stop()
+
+		defer ticker.Stop()
+
 		for {
 			select {
 			case <-ctx.Done():
