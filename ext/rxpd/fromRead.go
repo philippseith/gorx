@@ -9,7 +9,9 @@ import (
 	"github.com/philippseith/gorx/pkg/rx"
 )
 
-func FromRead[T any](ctx context.Context, readOption PropertyOption[T], options ...PropertyOption[T]) Property[T] {
+// FromRead creates a Property from a WithRead option. The reactive stream is created by a goroutine
+// which calls the read function in the interval set by SetInterval.
+func FromRead[T any](ctx context.Context, read func() rx.ResultChan[T], options ...PropertyOption[T]) Property[T] {
 
 	ch := make(chan T)
 	ivCh := make(chan time.Duration, 1)
@@ -19,14 +21,14 @@ func FromRead[T any](ctx context.Context, readOption PropertyOption[T], options 
 		option(&p.propertyOption)
 	}
 
-	readOption(&p.propertyOption)
-
 	WithSetInterval[T](func(d time.Duration) {
 		if ctx.Err() != nil {
 			return
 		}
 		ivCh <- d
 	})(&p.propertyOption)
+
+	p.read = read
 
 	go func() {
 		ticker := time.NewTicker(time.Second)
