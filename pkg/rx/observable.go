@@ -70,7 +70,6 @@ func (o *observable[T]) Catch(catch func(error) Subscribable[T]) Observable[T] {
 }
 
 func (o *observable[T]) Concat(sources ...Subscribable[T]) Observable[T] {
-
 	return Concat[T](append([]Subscribable[T]{o}, sources...)...)
 }
 
