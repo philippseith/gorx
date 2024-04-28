@@ -44,18 +44,26 @@ type Row struct {
 }
 
 func Model() rx.Subscribable[[]Row] {
-	t1 := rx.NewTicker(0, 1000*time.Millisecond)
-	t2 := rx.NewTicker(300*time.Millisecond, 10*time.Millisecond)
+	t1 := rx.NewTicker(0, 51*time.Millisecond)
+	t2 := rx.NewTicker(300*time.Millisecond, 17*time.Millisecond)
 	return rx.CombineLatest2[time.Time, time.Time, []Row](func(t1, t2 time.Time) []Row {
-		if t1.Second()%2 == 0 {
+		switch t1.UnixMilli() % 3 {
+		case 0:
 			return []Row{
 				{Id: "BBB", Time: t2.Format(time.StampMilli)},
 			}
-		} else {
+		case 1:
 			return []Row{
 				{Id: "AAA",
 					Time: time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC).Format(time.StampMilli)},
 				{Id: "BBB", Time: t2.Format(time.StampMilli)},
+			}
+		default:
+			return []Row{
+				{Id: "XXX",
+					Time: time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC).Format(time.StampMilli)},
+				{Id: "BBB", Time: t2.Format(time.StampMilli)},
+				{Id: "DDD", Time: t2.Format(time.StampMilli)},
 			}
 		}
 	}, t1, t2).DistinctUntilChanged(nil).ShareReplay(rx.MaxBufferSize(1))
