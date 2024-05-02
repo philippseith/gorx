@@ -2,7 +2,6 @@ package rxpd
 
 import (
 	"fmt"
-	"log"
 	"runtime/debug"
 	"slices"
 	"sync"
@@ -32,94 +31,6 @@ type Property[T any] interface {
 // ToProperty extends a Subscribable to a Property
 func ToProperty[T any](s rx.Subscribable[T], options ...PropertyOption[T]) Property[T] {
 	p := &property[T]{Subscribable: s}
-	for _, option := range options {
-		option(&p.propertyOption)
-	}
-	return p
-}
-
-type PropertyOption[T any] func(*propertyOption[T])
-
-type propertyOption[T any] struct {
-	setInterval   func(time.Duration)
-	read          func() rx.ResultChan[T]
-	write         func(T) <-chan error
-	readCallsNext bool
-}
-
-func WithSetInterval[T any](setInterval func(time.Duration)) func(*propertyOption[T]) {
-	return func(po *propertyOption[T]) {
-		po.setInterval = setInterval
-	}
-}
-
-func WithRead[T any](read func() rx.ResultChan[T]) func(*propertyOption[T]) {
-	return func(po *propertyOption[T]) {
-		po.read = read
-	}
-}
-
-func WithTapRead[T any](tapRead func(func() rx.ResultChan[T]) rx.ResultChan[T]) func(*propertyOption[T]) {
-	return func(po *propertyOption[T]) {
-		poRead := po.read
-		po.read = func() rx.ResultChan[T] {
-			return tapRead(poRead)
-		}
-	}
-}
-
-func WithWrite[T any](write func(T) <-chan error) func(*propertyOption[T]) {
-	return func(po *propertyOption[T]) {
-		po.write = write
-	}
-}
-
-func WithTapWrite[T any](tapWrite func(T, func(T) <-chan error) <-chan error) func(*propertyOption[T]) {
-	return func(po *propertyOption[T]) {
-		poWrite := po.write
-		po.write = func(t T) <-chan error {
-			return tapWrite(t, poWrite)
-		}
-	}
-}
-
-func WithLogReadWrite[T any](id string) func(*propertyOption[T]) {
-	return func(po *propertyOption[T]) {
-		poRead := po.read
-		po.read = func() rx.ResultChan[T] {
-			log.Printf("Before Read %s", id)
-			ch := make(chan rx.Result[T])
-			go func() {
-				result := <-poRead()
-				log.Printf("After Read %s: %v", id, result)
-				ch <- result
-				close(ch)
-			}()
-			return ch
-		}
-		po.write = func(t T) <-chan error {
-			poWrite := po.write
-			log.Printf("Before Write %s: %v", id, t)
-			ch := make(chan error)
-			go func() {
-				err := <-poWrite(t)
-				log.Printf("After Write %s: %v", id, err)
-				ch <- err
-				close(ch)
-			}()
-			return ch
-		}
-	}
-}
-
-// WithReadCallsNext configures that the result from the Read rx.ResultChan is passed to the Next function.
-func WithReadCallsNext[T any]() func(*propertyOption[T]) {
-	return func(po *propertyOption[T]) {
-		po.readCallsNext = true
-	}
-}
-
-func (p *property[T]) With(options ...PropertyOption[T]) Property[T] {
 	for _, option := range options {
 		option(&p.propertyOption)
 	}
@@ -278,33 +189,68 @@ func (p *property[T]) Read() rx.ResultChan[T] {
 					rCh = ch
 				}
 			}()
-			rrCh := p.read()
-			if p.readCallsNext {
-				rcnCh := make(chan rx.Result[T], 1)
-				go func() {
-					defer close(rcnCh)
 
-					result := <-rrCh
-					rcnCh <- result
-					if result.Err == nil {
-						func() {
-							p.mxRNC.Lock()
-							defer p.mxRNC.Unlock()
-
-							for _, readNextCh := range p.readNextCh {
-								go func(ch chan T) {
-									ch <- result.Ok
-								}(readNextCh)
-							}
-						}()
-					}
-				}()
-				return rcnCh
+			switch {
+			case p.readTimeout > 0:
+				rCh = p.onReadWithTimeout(p.read())
+			case p.readCallsNext && p.readTimeout == 0:
+				rCh = p.onReadCallsNext(p.read())
+			default:
+				// Trick to make sending an error to the result chan in defer possible
+				rCh = p.read()
 			}
-			rCh = rrCh
 			return rCh
 		}()
 	}
+	return ch
+}
+
+func (p *property[T]) onReadCallsNext(rCh rx.ResultChan[T]) rx.ResultChan[T] {
+	ch := make(chan rx.Result[T], 1)
+	go func() {
+		defer close(ch)
+
+		result := <-rCh
+		ch <- result
+		if result.Err == nil {
+			p.callNextWithRead(result.Ok)
+		}
+	}()
+	return ch
+}
+
+func (p *property[T]) callNextWithRead(value T) {
+	p.mxRNC.Lock()
+	defer p.mxRNC.Unlock()
+
+	for _, readNextCh := range p.readNextCh {
+		go func(ch chan T) {
+			ch <- value
+		}(readNextCh)
+	}
+}
+
+func (p *property[T]) onReadWithTimeout(rCh rx.ResultChan[T]) rx.ResultChan[T] {
+	ch := make(chan rx.Result[T], 1)
+	go func() {
+		defer close(ch)
+
+		if p.readCallsNext {
+			rCh = p.onReadCallsNext(rCh)
+		}
+
+		select {
+		case result := <-rCh:
+			ch <- result
+		case <-time.After(p.readTimeout):
+			timeoutResult := p.onReadTimeout()
+			ch <- timeoutResult
+			if timeoutResult.Err == nil {
+				p.callNextWithRead(timeoutResult.Ok)
+			}
+
+		}
+	}()
 	return ch
 }
 

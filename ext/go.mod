@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/gin-gonic/gin v1.9.1
+	github.com/go-playground/assert/v2 v2.2.0
 	github.com/jfyne/live v0.15.6
 	github.com/philippseith/gorx v0.0.0-20240409202507-eec9ef2e7d2d
 	github.com/stretchr/testify v1.8.4
