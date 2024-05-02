@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"runtime/debug"
+	"slices"
+	"sync"
 	"time"
 
 	"github.com/philippseith/gorx/pkg/rx"
@@ -39,9 +41,10 @@ func ToProperty[T any](s rx.Subscribable[T], options ...PropertyOption[T]) Prope
 type PropertyOption[T any] func(*propertyOption[T])
 
 type propertyOption[T any] struct {
-	setInterval func(time.Duration)
-	read        func() rx.ResultChan[T]
-	write       func(T) <-chan error
+	setInterval   func(time.Duration)
+	read          func() rx.ResultChan[T]
+	write         func(T) <-chan error
+	readCallsNext bool
 }
 
 func WithSetInterval[T any](setInterval func(time.Duration)) func(*propertyOption[T]) {
@@ -109,6 +112,13 @@ func WithLogReadWrite[T any](id string) func(*propertyOption[T]) {
 	}
 }
 
+// WithReadCallsNext configures that the result from the Read rx.ResultChan is passed to the Next function.
+func WithReadCallsNext[T any]() func(*propertyOption[T]) {
+	return func(po *propertyOption[T]) {
+		po.readCallsNext = true
+	}
+}
+
 func (p *property[T]) With(options ...PropertyOption[T]) Property[T] {
 	for _, option := range options {
 		option(&p.propertyOption)
@@ -122,12 +132,35 @@ type property[T any] struct {
 
 	tearDownLogics []func()
 	interval       time.Duration
+	readNextCh     []chan T
+	mxRNC          sync.Mutex
 }
 
 func (p *property[T]) Subscribe(o rx.Observer[T]) rx.Subscription {
 	sub := p.Subscribable.Subscribe(o)
 	for _, tld := range p.tearDownLogics {
 		sub.AddTearDownLogic(tld)
+	}
+	if p.readCallsNext {
+
+		readNextCh := make(chan T, 1)
+		p.readNextCh = append(p.readNextCh, readNextCh)
+		sub.AddTearDownLogic(func() {
+			p.mxRNC.Lock()
+			defer p.mxRNC.Unlock()
+
+			if i := slices.Index(p.readNextCh, readNextCh); i != -1 {
+				p.readNextCh[i] = p.readNextCh[len(p.readNextCh)-1]
+				p.readNextCh = p.readNextCh[:len(p.readNextCh)-1]
+			}
+			close(readNextCh)
+		})
+
+		go func() {
+			for value := range readNextCh {
+				o.Next(value)
+			}
+		}()
 	}
 	return sub
 }
@@ -245,7 +278,30 @@ func (p *property[T]) Read() rx.ResultChan[T] {
 					rCh = ch
 				}
 			}()
-			rCh = p.read()
+			rrCh := p.read()
+			if p.readCallsNext {
+				rcnCh := make(chan rx.Result[T], 1)
+				go func() {
+					defer close(rcnCh)
+
+					result := <-rrCh
+					rcnCh <- result
+					if result.Err == nil {
+						func() {
+							p.mxRNC.Lock()
+							defer p.mxRNC.Unlock()
+
+							for _, readNextCh := range p.readNextCh {
+								go func(ch chan T) {
+									ch <- result.Ok
+								}(readNextCh)
+							}
+						}()
+					}
+				}()
+				return rcnCh
+			}
+			rCh = rrCh
 			return rCh
 		}()
 	}
