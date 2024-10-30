@@ -3,6 +3,7 @@ package rxpd
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/philippseith/gorx/pkg/rx"
 )
@@ -15,7 +16,11 @@ func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[a
 	q := &property[T]{
 		Subscribable: rx.CombineLatest[T](combine, rxSources...),
 		propertyOption: propertyOption[T]{
-			setInterval: nil,
+			setInterval: func(interval time.Duration) {
+				for _, s := range sources {
+					s.SetInterval(interval)
+				}
+			},
 			read: func() rx.ResultChan[T] {
 				ch := make(chan rx.Result[T])
 				go func() {
