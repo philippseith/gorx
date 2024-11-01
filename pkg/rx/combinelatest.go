@@ -9,7 +9,7 @@ import (
 func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[any]) Observable[T] {
 	c := &combineLatest[T]{
 		Operator:  Operator[any, T]{t2u: func(a any) T { return a.(T) }},
-		lasts:     make([]any, len(sources)),
+		latest:    make([]any, len(sources)),
 		subs:      make([]Subscription, len(sources)),
 		completed: make([]bool, len(sources)),
 	}
@@ -35,7 +35,7 @@ func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[a
 
 type combineLatest[T any] struct {
 	Operator[any, T]
-	lasts     []any
+	latest    []any
 	subs      []Subscription
 	completed []bool
 
@@ -47,8 +47,8 @@ func (c *combineLatest[T]) next(combine func(next ...any) T, idx int, next any) 
 		c.mx.Lock()
 		defer c.mx.Unlock()
 
-		c.lasts[idx] = next
-		for _, last := range c.lasts {
+		c.latest[idx] = next
+		for _, last := range c.latest {
 			if last == nil {
 				return true
 			}
@@ -58,16 +58,16 @@ func (c *combineLatest[T]) next(combine func(next ...any) T, idx int, next any) 
 		return
 	}
 
-	lasts := func() []any {
+	latest := func() []any {
 		c.mx.Lock()
 		defer c.mx.Unlock()
 
-		lasts := make([]any, len(c.lasts))
-		copy(lasts, c.lasts)
-		return lasts
+		latest := make([]any, len(c.latest))
+		copy(latest, c.latest)
+		return latest
 	}()
 
-	c.Operator.Next(combine(lasts...))
+	c.Operator.Next(combine(latest...))
 }
 
 func (c *combineLatest[T]) complete(idx int) {
