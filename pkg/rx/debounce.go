@@ -33,7 +33,12 @@ func Debounce[T any, U any](s Subscribable[T], trigger Subscribable[U]) Observab
 
 					d.hasLast = false
 				}()
-				d.Operator.Next(d.last)
+				d.Operator.Next(func() T {
+					d.mx.RLock()
+					defer d.mx.RUnlock()
+
+					return d.last
+				}())
 			}
 
 		}))
