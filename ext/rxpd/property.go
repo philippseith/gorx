@@ -5,6 +5,7 @@ import (
 	"runtime/debug"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/philippseith/gorx/pkg/rx"
@@ -167,14 +168,16 @@ func (p *property[T]) ToSlice() <-chan []T {
 }
 
 func (p *property[T]) SetInterval(interval time.Duration) {
-	p.interval = interval
+
+	atomic.StoreInt64((*int64)(&p.interval), int64(interval))
+
 	if p.setInterval != nil {
 		p.setInterval(interval)
 	}
 }
 
 func (p *property[T]) Interval() time.Duration {
-	return p.interval
+	return time.Duration(atomic.LoadInt64((*int64)(&p.interval)))
 }
 
 func (p *property[T]) Read() rx.ResultChan[T] {
