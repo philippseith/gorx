@@ -16,11 +16,11 @@ func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[a
 	c.prepareSubscribe(func() Subscription {
 		for i, source := range sources {
 			idx := i
-			c.subs[idx] = source.Subscribe(NewObserver[any](
+			c.subs[idx] = source.Subscribe(NewObserver(
 				// Next
 				func(next any) { c.next(combine, idx, next) },
 				// Error
-				c.Operator.Error,
+				c.Error,
 				// Complete
 				func() { c.complete(idx) }))
 		}
@@ -30,7 +30,7 @@ func CombineLatest[T any](combine func(next ...any) T, sources ...Subscribable[a
 			}
 		})
 	})
-	return ToObservable[T](c)
+	return ToObservable(c)
 }
 
 type combineLatest[T any] struct {
@@ -67,7 +67,7 @@ func (c *combineLatest[T]) next(combine func(next ...any) T, idx int, next any) 
 		return latest
 	}()
 
-	c.Operator.Next(combine(latest...))
+	c.Next(combine(latest...))
 }
 
 func (c *combineLatest[T]) complete(idx int) {
@@ -85,5 +85,5 @@ func (c *combineLatest[T]) complete(idx int) {
 	}() {
 		return
 	}
-	c.Operator.Complete()
+	c.Complete()
 }

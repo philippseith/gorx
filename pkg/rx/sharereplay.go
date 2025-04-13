@@ -16,12 +16,12 @@ type shareReplay[T any] struct {
 
 func (sh *shareReplay[T]) Subscribe(o Observer[T]) Subscription {
 	su := sh.ReplaySubject.Subscribe(o)
-	if (!sh.onceSubscribed || sh.ReplaySubject.opt.refCount) && len(sh.subject.observers) == 1 {
+	if (!sh.onceSubscribed || sh.opt.refCount) && len(sh.observers) == 1 {
 		sh.sn = sh.s.Subscribe(sh)
 		sh.onceSubscribed = true
 	}
 	su.AddTearDownLogic(func() {
-		if sh.ReplaySubject.opt.refCount && len(sh.subject.observers) == 0 {
+		if sh.opt.refCount && len(sh.observers) == 0 {
 			sh.sn.Unsubscribe()
 		}
 	})

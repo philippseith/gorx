@@ -3,21 +3,21 @@ package rx
 func Map[T any, U any](s Subscribable[T], mapper func(T) U) Observable[U] {
 	m := &Operator[T, U]{t2u: mapper}
 	m.prepareSubscribe(func() Subscription { return s.Subscribe(m) })
-	return ToObservable[U](m)
+	return ToObservable(m)
 }
 
 func Reduce[T any, U any](s Subscribable[T], acc func(U, T) U, seed U) Observable[U] {
 	result := &seed
 	r := &Operator[U, U]{t2u: func(u U) U { return u }}
 	r.prepareSubscribe(func() Subscription {
-		return s.Subscribe(NewObserver[T](func(value T) {
+		return s.Subscribe(NewObserver(func(value T) {
 			*result = acc(*result, value)
 		}, r.Error, func() {
 			r.Next(*result)
 			r.Complete()
 		}))
 	})
-	return ToObservable[U](r)
+	return ToObservable(r)
 }
 
 func Scan[T any, U any](s Subscribable[T], acc func(U, T) U, seed U) Observable[U] {
@@ -30,5 +30,5 @@ func Scan[T any, U any](s Subscribable[T], acc func(U, T) U, seed U) Observable[
 		return sc.acc
 	}}
 	sc.prepareSubscribe(func() Subscription { return s.Subscribe(sc) })
-	return ToObservable[U](sc)
+	return ToObservable(sc)
 }

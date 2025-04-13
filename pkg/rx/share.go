@@ -15,11 +15,11 @@ type share[T any] struct {
 
 func (sh *share[T]) Subscribe(o Observer[T]) Subscription {
 	su := sh.subject.Subscribe(o)
-	if len(sh.subject.observers) == 1 {
+	if len(sh.observers) == 1 {
 		sh.sn = sh.s.Subscribe(sh)
 	}
 	su.AddTearDownLogic(func() {
-		if len(sh.subject.observers) == 0 {
+		if len(sh.observers) == 0 {
 			sh.sn.Unsubscribe()
 		}
 	})

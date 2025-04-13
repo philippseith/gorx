@@ -18,7 +18,7 @@ func Tap[T any](s Subscribable[T], subscribe func(Observer[T]), next func(T) T, 
 		unsubscribe: unsubscribe,
 	}
 	t.onSubscribe = func() Subscription { return s.Subscribe(t) }
-	return ToObservable[T](t)
+	return ToObservable(t)
 }
 
 // Log allows to log all method invocations of the Subscriber/Subscribable interface.

@@ -39,7 +39,7 @@ func (ch ResultChan[T]) ToObservable() Observable[T] {
 		}()
 		return NewSubscription(func() {})
 	})
-	return ToObservable[T](fc)
+	return ToObservable(fc)
 }
 
 // OnNext adds a Next handler to a ResultChan
