@@ -8,7 +8,7 @@ import (
 // the first given Observable and then moves on to the next.
 func Concat[T any](sources ...Subscribable[T]) Observable[T] {
 	c := &concat[T]{sources: sources}
-	return ToObservable[T](c)
+	return ToObservable(c)
 }
 
 type concat[T any] struct {

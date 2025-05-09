@@ -21,7 +21,7 @@ func Catch[T any](s Subscribable[T], catchError func(error) Subscribable[T]) Obs
 					}
 				})
 	})
-	return ToObservable[T](ce)
+	return ToObservable(ce)
 }
 
 type catch[T any] struct {

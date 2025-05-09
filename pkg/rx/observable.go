@@ -66,7 +66,7 @@ func (o *observable[T]) AddTearDownLogic(tld func()) Observable[T] {
 }
 
 func (o *observable[T]) Catch(catch func(error) Subscribable[T]) Observable[T] {
-	return Catch[T](o, catch)
+	return Catch(o, catch)
 }
 
 func (o *observable[T]) Concat(sources ...Subscribable[T]) Observable[T] {
@@ -74,28 +74,28 @@ func (o *observable[T]) Concat(sources ...Subscribable[T]) Observable[T] {
 }
 
 func (o *observable[T]) DebounceTime(duration time.Duration) Observable[T] {
-	return DebounceTime[T](o, duration)
+	return DebounceTime(o, duration)
 }
 
 func (o *observable[T]) DistinctUntilChanged(equal func(T, T) bool) Observable[T] {
-	return DistinctUntilChanged[T](o, equal)
+	return DistinctUntilChanged(o, equal)
 }
 
 func (o *observable[T]) Log(id string) Observable[T] {
-	return Log[T](o, id)
+	return Log(o, id)
 }
 
 func (o *observable[T]) Merge(sources ...Subscribable[T]) Observable[T] {
 	sources = append([]Subscribable[T]{o}, sources...)
-	return Merge[T](sources...)
+	return Merge(sources...)
 }
 
 func (o *observable[T]) Share() Observable[T] {
-	return Share[T](o)
+	return Share(o)
 }
 
 func (o *observable[T]) ShareReplay(opts ...ReplayOption) Observable[T] {
-	return ShareReplay[T](o, opts...)
+	return ShareReplay(o, opts...)
 }
 
 func (o *observable[T]) Take(count int) Observable[T] {

@@ -12,7 +12,7 @@ func Merge[T any](sources ...Subscribable[T]) Observable[T] {
 	m.completed = make([]bool, len(sources))
 	for i, source := range sources {
 		ci := i
-		m.subs = append(m.subs, source.Subscribe(NewObserver[T](m.Next, m.Error, func() {
+		m.subs = append(m.subs, source.Subscribe(NewObserver(m.Next, m.Error, func() {
 			func() {
 				m.mxState.Lock()
 				defer m.mxState.Unlock()
@@ -34,7 +34,7 @@ func Merge[T any](sources ...Subscribable[T]) Observable[T] {
 			}
 		})))
 	}
-	return ToObservable[T](m)
+	return ToObservable(m)
 }
 
 type merge[T any] struct {

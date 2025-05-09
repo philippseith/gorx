@@ -9,7 +9,7 @@ import (
 // Subscribable by the specified duration and may drop some values if they occur
 // too frequently.
 func DebounceTime[T any](s Subscribable[T], duration time.Duration) Observable[T] {
-	return Debounce[T, time.Time](s, NewTicker(0, duration))
+	return Debounce(s, NewTicker(0, duration))
 }
 
 // Debounce emits a notification from the source Observable only after a
@@ -44,7 +44,7 @@ func Debounce[T any, U any](s Subscribable[T], trigger Subscribable[U]) Observab
 		}))
 		return s.Subscribe(d).AddSubscription(triggerSub)
 	})
-	ds := ToObservable[T](d)
+	ds := ToObservable(d)
 	// Unsubscribe trigger
 	return ds
 }
